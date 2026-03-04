@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* IJsselheem huisstijl: typografie en basis */
+body {
+  margin: 0;
+  font-family: 'Montserrat', Calibri, sans-serif;
+  color: #25377f;
+}
+
+/* Alle invoervelden: wit, afgeronde hoeken (12–24px), donkerblauw focus */
+@layer components {
+  .input-ijsselheem {
+    @apply block w-full bg-white border border-gray-300 rounded-xl px-3 py-2 text-ijsselheem-donkerblauw placeholder:text-gray-400;
+    @apply focus:border-ijsselheem-accentblauw focus:ring-1 focus:ring-ijsselheem-accentblauw focus:outline-none;
+  }
+  select.input-ijsselheem {
+    @apply appearance-none;
+  }
+}

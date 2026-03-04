@@ -1,0 +1,2 @@
+-- Geen process tracking: schema is gebaseerd op CSV (alleen apps en user_profiles).
+-- Dit bestand blijft staan voor migratie-volgorde.

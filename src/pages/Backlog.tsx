@@ -3,9 +3,10 @@ import { useSearchParams, Link } from 'react-router-dom'
 import { fetchFeaturesForBacklog } from '@/lib/roadmap'
 import type { BacklogFeatureRow } from '@/types/roadmap'
 import type { AppStatusDb } from '@/types/app'
-import { APP_STATUS_OPTIONS, DOMEIN_OPTIONS } from '@/types/app'
+import { useReferenceOptions } from '@/hooks/useReferenceOptions'
 import { type BacklogFilters } from '@/lib/apps'
 import { cn } from '@/lib/utils'
+import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
 type SortKey =
   | 'naam'
@@ -36,6 +37,8 @@ function getSortValue(row: BacklogFeatureRow, key: SortKey): string | number | b
 
 export function Backlog() {
   const [searchParams] = useSearchParams()
+  const { options: domeinOptions } = useReferenceOptions('domein')
+  const { options: appStatusOptions } = useReferenceOptions('app_status')
   const [rows, setRows] = useState<BacklogFeatureRow[]>([])
   const [loading, setLoading] = useState(true)
   const [sortKey, setSortKey] = useState<SortKey>('prioriteitsscore')
@@ -151,8 +154,8 @@ export function Backlog() {
           className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-1.5 text-sm"
         >
           <option value="">Alle domeinen</option>
-          {DOMEIN_OPTIONS.map((d) => (
-            <option key={d} value={d}>{d}</option>
+          {domeinOptions.map((d) => (
+            <option key={d.value} value={d.value}>{d.label}</option>
           ))}
         </select>
         <select
@@ -161,7 +164,7 @@ export function Backlog() {
           className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-1.5 text-sm"
         >
           <option value="">Alle statussen</option>
-          {APP_STATUS_OPTIONS.filter((o) => BACKLOG_PHASES.includes(o.value)).map((o) => (
+          {appStatusOptions.filter((o) => BACKLOG_PHASES.includes(o.value as AppStatusDb)).map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>
           ))}
         </select>
@@ -182,11 +185,11 @@ export function Backlog() {
         <div className="space-y-6">
           {[
             {
-              title: 'Sprintbaar met user story',
+              title: 'Sprintbaar met user story of taken',
               rows: sprintbaarMetStory,
             },
             {
-              title: 'Beoordeeld, nog geen user story',
+              title: 'Beoordeeld, nog geen user story of taken',
               rows: beoordeeldGeenStory,
             },
             {
@@ -245,12 +248,15 @@ export function Backlog() {
                             )}
                           >
                             <td className="p-2">
-                              <Link
-                                to={`/backlog/feature/${row.feature.id}`}
-                                className="font-medium text-ijsselheem-donkerblauw hover:underline"
-                              >
-                                {row.app_naam} · {row.feature.naam}
-                              </Link>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Link
+                                  to={`/backlog/feature/${row.feature.id}`}
+                                  className="font-medium text-ijsselheem-donkerblauw hover:underline"
+                                >
+                                  {row.app_naam} · {row.feature.naam}
+                                </Link>
+                                <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />
+                              </div>
                             </td>
                             <td className="p-2 text-ijsselheem-donkerblauw">{row.app_domein ?? '—'}</td>
                             <td className="p-2 text-ijsselheem-donkerblauw text-xs">

@@ -2,11 +2,17 @@
 @tailwind components;
 @tailwind utilities;
 
-/* IJsselheem huisstijl: typografie en basis */
+/* IJsselheem huisstijl: typografie en basis; min-height zodat de pagina altijd zichtbaar is */
+html,
 body {
   margin: 0;
+  min-height: 100vh;
   font-family: 'Montserrat', Calibri, sans-serif;
   color: #25377f;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 /* Alle invoervelden: wit, afgeronde hoeken (12–24px), donkerblauw focus */

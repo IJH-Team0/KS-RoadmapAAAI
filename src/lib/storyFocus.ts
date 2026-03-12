@@ -101,7 +101,7 @@ export function getStoryTemplate(
 }
 
 /**
- * Minuten per medewerker per week uit urenwinst per jaar en aantal medewerkers.
+ * Minuten per medewerker per keer (afgeleid uit urenwinst per jaar en aantal medewerkers).
  * (urenwinst_per_jaar * 60) / (52 * aantal_medewerkers); afgerond.
  */
 export function minutenPerMedewerkerPerWeek(

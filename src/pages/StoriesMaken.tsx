@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchFeaturesInStoriesMaken } from '@/lib/roadmap'
 import type { BacklogFeatureRow } from '@/types/roadmap'
+import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
-/** Werklijst van features in status User stories maken. Klik om user stories toe te voegen. */
+/** Werklijst van features in status User stories of taken maken. Klik om user stories of taken toe te voegen. */
 export function StoriesMaken() {
   const [rows, setRows] = useState<BacklogFeatureRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -39,12 +40,12 @@ export function StoriesMaken() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">User stories maken</h2>
+      <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">User stories of taken maken</h2>
       <p className="text-sm text-ijsselheem-donkerblauw/80">
-        Features die in de fase User stories maken staan. Klik op een item om user stories toe te voegen. Na het toevoegen van ten minste één user story gaat het item automatisch naar Sprintbaar.
+        Features die in de fase User stories of taken maken staan. Klik op een item om user stories of taken toe te voegen. Na het toevoegen van ten minste één user story of taken gaat het item automatisch naar Sprintbaar.
       </p>
       {rows.length === 0 ? (
-        <p className="text-ijsselheem-donkerblauw/80">Geen items in User stories maken.</p>
+        <p className="text-ijsselheem-donkerblauw/80">Geen items in User stories of taken maken.</p>
       ) : (
         <>
           <input
@@ -81,7 +82,7 @@ export function StoriesMaken() {
                         Prioriteitsscore
                       </th>
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
-                        User stories
+                        User stories of taken
                       </th>
                     </tr>
                   </thead>
@@ -92,12 +93,15 @@ export function StoriesMaken() {
                         className="border-t border-ijsselheem-accentblauw/20"
                       >
                         <td className="p-2">
-                          <Link
-                            to={`/backlog/feature/${row.feature.id}`}
-                            className="font-medium text-ijsselheem-donkerblauw hover:underline"
-                          >
-                            {row.app_naam} · {row.feature.naam}
-                          </Link>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              to={`/backlog/feature/${row.feature.id}?focus=stories&view=compact`}
+                              className="font-medium text-ijsselheem-donkerblauw hover:underline"
+                            >
+                              {row.app_naam} · {row.feature.naam}
+                            </Link>
+                            <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />
+                          </div>
                         </td>
                         <td className="p-2 text-ijsselheem-donkerblauw">{row.app_domein ?? '—'}</td>
                         <td className="p-2 text-ijsselheem-donkerblauw text-xs">

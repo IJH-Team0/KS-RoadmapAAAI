@@ -19,7 +19,6 @@ export interface Feature {
   app_id: string
   naam: string
   beschrijving: string | null
-  prioriteit: number | null
   status: FeatureStatusDb
   ready_for_stories: boolean
   story_count: number
@@ -44,6 +43,8 @@ export interface Feature {
    * De app kan in productie staan (op basis van Basisfunctionaliteit) terwijl deze feature nog wensenlijst of in ontwikkeling is; roadmap toont per feature.
    */
   planning_status?: AppStatusDb | null
+  /** Of Sparse (leverancier) bij deze feature betrokken is; zichtbaar vanaf beveiligingsniveau L2. Levert boete-punten op prioriteitsscore. */
+  sparse_betrokken?: boolean | null
 }
 
 /** Roadmap-item (altijd gekoppeld aan app, optioneel aan feature) */
@@ -71,7 +72,6 @@ export interface RoadmapItemWithAppAndFeature extends RoadmapItem {
 export interface FeatureInsert {
   naam: string
   beschrijving?: string | null
-  prioriteit?: number | null
   status?: FeatureStatusDb
 }
 
@@ -81,7 +81,6 @@ export type FeatureUpdate = Partial<
     Feature,
     | 'naam'
     | 'beschrijving'
-    | 'prioriteit'
     | 'status'
     | 'ready_for_stories'
     | 'zorgwaarde'
@@ -96,6 +95,7 @@ export type FeatureUpdate = Partial<
     | 'aantal_medewerkers'
     | 'zorgimpact_type'
     | 'planning_status'
+    | 'sparse_betrokken'
   >
 >
 
@@ -115,6 +115,8 @@ export interface BacklogFeatureRow {
   app_platform?: string | null
   /** Aanspreekpunt intern (wie heeft de app aangevraagd) */
   app_aanspreekpunt_intern?: string | null
+  /** Beveiligingsniveau app (L0–L3) voor badge-weergave */
+  app_beveiligingsniveau?: 'L0' | 'L1' | 'L2' | 'L3' | null
 }
 
 /** Payload om een nieuw roadmap-item aan te maken */

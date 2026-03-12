@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { fetchFeaturesNeedingBeoordeling } from '@/lib/roadmap'
 import type { BacklogFeatureRow } from '@/types/roadmap'
+import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
 /** Lijst van features die nog beoordeling nodig hebben (geen zorgwaarde of geen bouwinspanning). */
 export function Beoordelen() {
@@ -88,12 +89,15 @@ export function Beoordelen() {
                         className="border-t border-ijsselheem-accentblauw/20"
                       >
                         <td className="p-2">
-                          <Link
-                            to={`/backlog/feature/${row.feature.id}`}
-                            className="font-medium text-ijsselheem-donkerblauw hover:underline"
-                          >
-                            {row.app_naam} · {row.feature.naam}
-                          </Link>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link
+                              to={`/backlog/feature/${row.feature.id}?focus=beoordelen&view=compact`}
+                              className="font-medium text-ijsselheem-donkerblauw hover:underline"
+                            >
+                              {row.app_naam} · {row.feature.naam}
+                            </Link>
+                            <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />
+                          </div>
                         </td>
                         <td className="p-2 text-ijsselheem-donkerblauw">{row.app_domein ?? '—'}</td>
                         <td className="p-2 text-ijsselheem-donkerblauw text-xs">

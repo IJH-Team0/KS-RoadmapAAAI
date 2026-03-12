@@ -49,6 +49,7 @@ export async function createApp(payload: {
   urenwinst_per_jaar?: number | null
   werkbesparing_score?: number | null
   prioriteitsscore?: number | null
+  beveiligingsniveau?: 'L0' | 'L1' | 'L2' | 'L3' | null
 }): Promise<App> {
   const { data, error } = await supabase
     .from('apps')
@@ -67,6 +68,7 @@ export async function createApp(payload: {
       urenwinst_per_jaar: payload.urenwinst_per_jaar ?? null,
       werkbesparing_score: payload.werkbesparing_score ?? null,
       prioriteitsscore: payload.prioriteitsscore ?? null,
+      beveiligingsniveau: payload.beveiligingsniveau ?? null,
     })
     .select()
     .single()
@@ -129,13 +131,27 @@ export async function fetchAppsWensenlijstOrInOntwikkeling(): Promise<App[]> {
   return (data ?? []) as App[]
 }
 
-/** Apps in test or productie for applicaties startpagina */
+/** Apps in test or productie met publicatie afgerond (zichtbaar voor gebruikers) */
 export async function fetchAppsTestEnProductie(): Promise<App[]> {
   const { data, error } = await supabase
     .from('apps')
     .select('*')
     .in('status', ['in_testfase', 'in_productie'])
+    .eq('publicatie_afgerond', true)
     .order('status') // productie before test (alphabetically in_productie < in_testfase)
+    .order('naam')
+  if (error) throw error
+  return (data ?? []) as App[]
+}
+
+/** Apps in test or productie die nog niet publiek zijn (voor Stap 8: Publicatie afronden) */
+export async function fetchAppsTestEnProductieNogNietPubliek(): Promise<App[]> {
+  const { data, error } = await supabase
+    .from('apps')
+    .select('*')
+    .in('status', ['in_testfase', 'in_productie'])
+    .or('publicatie_afgerond.eq.false,publicatie_afgerond.is.null')
+    .order('status')
     .order('naam')
   if (error) throw error
   return (data ?? []) as App[]

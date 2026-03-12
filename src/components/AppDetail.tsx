@@ -3,15 +3,11 @@ import { Link } from 'react-router-dom'
 import type { App, AppStatusDb, AppUpdate } from '@/types/app'
 import {
   getStatusLabel,
-  APP_STATUS_OPTIONS,
-  APP_ICON_OPTIONS,
-  PLATFORM_OPTIONS,
-  PRIORITEIT_OPTIONS,
-  COMPLEXITEIT_OPTIONS,
-  IMPACT_OPTIONS,
-  DOEL_OPTIONS,
+  getBouwinspanningLabel,
   BASISFEATURE_NAAM,
 } from '@/types/app'
+import { useReferenceOptions } from '@/hooks/useReferenceOptions'
+import { BEVEILIGINGSNIVEAU_OPTIONS, getBeveiligingsniveauLabel } from '@/lib/beveiligingsniveau'
 import { updateApp } from '@/lib/apps'
 import { useAuth } from '@/contexts/AuthContext'
 import {
@@ -27,10 +23,14 @@ import {
   getFeatureStatusLabel,
 } from '@/types/roadmap'
 
+export type AppDetailShowOnly = 'algemene' | 'features' | 'all'
+
 interface AppDetailProps {
   app: App
   onSaved: (app: App) => void
   onCancel?: () => void
+  /** Alleen dit onderdeel tonen; 'all' = alles (standaard). */
+  showOnly?: AppDetailShowOnly
 }
 
 function hasValue(v: string | null | undefined): v is string {
@@ -40,8 +40,16 @@ function hasDateValue(v: string | null | undefined): boolean {
   return v != null && String(v).trim() !== ''
 }
 
-export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps) {
-  const { role } = useAuth()
+export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all' }: AppDetailProps) {
+  const { effectiveRole } = useAuth()
+  const { options: appStatusOptions } = useReferenceOptions('app_status')
+  const { options: appIconOptions } = useReferenceOptions('app_icon')
+  const { options: platformOptions } = useReferenceOptions('platform')
+  const { options: complexiteitOptions } = useReferenceOptions('complexiteit')
+  const { options: domeinOptions } = useReferenceOptions('domein')
+  const { options: zorgimpactTypeOptions } = useReferenceOptions('zorgimpact_type')
+  const { options: bouwinspanningOptions } = useReferenceOptions('bouwinspanning')
+  const { options: zorgwaardeOptions } = useReferenceOptions('zorgwaarde')
   const [app, setApp] = useState<App>(initialApp)
   const [editMode, setEditMode] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -55,7 +63,6 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
   const [addFeatureForm, setAddFeatureForm] = useState<FeatureInsert>({
     naam: '',
     beschrijving: '',
-    prioriteit: null,
     status: 'gepland',
   })
   const [errorFeature, setErrorFeature] = useState<string | null>(null)
@@ -96,7 +103,6 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
       await updateFeature(editingFeatureId, {
         naam: editFeatureForm.naam,
         beschrijving: editFeatureForm.beschrijving ?? null,
-        prioriteit: editFeatureForm.prioriteit ?? null,
         status: editFeatureForm.status,
         planning_status: planningStatus,
       })
@@ -122,11 +128,10 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
       await createFeature(app.id, {
         naam: addFeatureForm.naam.trim(),
         beschrijving: addFeatureForm.beschrijving?.trim() || null,
-        prioriteit: addFeatureForm.prioriteit ?? null,
         status: addFeatureForm.status ?? 'gepland',
       })
       setShowAddFeature(false)
-      setAddFeatureForm({ naam: '', beschrijving: '', prioriteit: null, status: 'gepland' })
+      setAddFeatureForm({ naam: '', beschrijving: '', status: 'gepland' })
       refetchFeatures()
     } catch (err) {
       setErrorFeature(err instanceof Error ? err.message : 'Toevoegen mislukt')
@@ -150,7 +155,7 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
     }
   }
 
-  const isAdmin = role === 'admin'
+  const isAdmin = effectiveRole === 'admin'
 
   const handleSave = async () => {
     setSaving(true)
@@ -171,11 +176,23 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
       icon_key: app.icon_key || null,
       handleiding_aanwezig: app.handleiding_aanwezig ?? false,
       sparse: app.sparse ?? false,
-      prioriteit: app.prioriteit || null,
       complexiteit: app.complexiteit || null,
       domein: app.domein || null,
-      impact: app.impact || null,
-      doel: app.doel || null,
+      probleemomschrijving: app.probleemomschrijving ?? null,
+      proces: app.proces ?? null,
+      frequentie_per_week: app.frequentie_per_week ?? null,
+      minuten_per_medewerker_per_week: app.minuten_per_medewerker_per_week ?? null,
+      aantal_medewerkers: app.aantal_medewerkers ?? null,
+      zorgimpact_type: app.zorgimpact_type ?? null,
+      zorgwaarde: app.zorgwaarde ?? null,
+      bouwinspanning: app.bouwinspanning ?? null,
+      risico: app.risico ?? null,
+      beoordeling_toelichting: app.beoordeling_toelichting ?? null,
+      concept: app.concept ?? null,
+      urenwinst_per_jaar: app.urenwinst_per_jaar ?? null,
+      werkbesparing_score: app.werkbesparing_score ?? null,
+      prioriteitsscore: app.prioriteitsscore ?? null,
+      beveiligingsniveau: app.beveiligingsniveau ?? null,
     }
     try {
       const updated = await updateApp(app.id, update)
@@ -196,30 +213,71 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
     onCancel?.()
   }
 
-  // View mode: only show fields with a value (doel_app shown prominently above)
-  const viewFields: { label: string; value: string | boolean }[] = []
-  if (hasValue(app.naam)) viewFields.push({ label: 'Applicatie', value: app.naam })
-  viewFields.push({ label: 'Status', value: getStatusLabel(app.status) })
-  if (hasValue(app.eigenaar)) viewFields.push({ label: 'Eigenaar', value: app.eigenaar })
-  if (hasValue(app.aanspreekpunt_proces)) viewFields.push({ label: 'Aanspreekpunt proces', value: app.aanspreekpunt_proces })
-  if (hasValue(app.aanspreekpunt_intern)) viewFields.push({ label: 'Aanspreekpunt Intern', value: app.aanspreekpunt_intern })
-  if (hasValue(app.ontwikkeld_door)) viewFields.push({ label: 'Ontwikkeld door', value: app.ontwikkeld_door })
-  if (hasDateValue(app.datum_oplevering)) viewFields.push({ label: 'Datum oplevering', value: app.datum_oplevering!.slice(0, 10) })
-  if (hasValue(app.platform)) viewFields.push({ label: 'Platform', value: app.platform })
-  if (hasValue(app.documentatie_url)) viewFields.push({ label: 'Documentatie', value: app.documentatie_url })
-  if (hasValue(app.url_test)) viewFields.push({ label: 'URL test', value: app.url_test })
-  if (hasValue(app.url_productie)) viewFields.push({ label: 'URL productie', value: app.url_productie })
-  if (hasValue(app.icon_key)) {
-    const iconLabel = APP_ICON_OPTIONS.find((o) => o.value === app.icon_key)?.label ?? app.icon_key
-    viewFields.push({ label: 'Icoon', value: iconLabel })
+  // View mode: only show fields with a value (doel_app shown prominently above), grouped by section
+  type ViewField = { label: string; value: string | boolean }
+  const viewSections: { title: string; fields: ViewField[] }[] = []
+
+  const add = (sectionTitle: string) => {
+    const fields: ViewField[] = []
+    const section = { title: sectionTitle, fields }
+    viewSections.push(section)
+    return {
+      push: (label: string, value: string | boolean) => {
+        fields.push({ label, value })
+      },
+    }
   }
-  if (app.handleiding_aanwezig != null) viewFields.push({ label: 'Handleiding aanwezig', value: app.handleiding_aanwezig ? 'Ja' : 'Nee' })
-  if (app.sparse != null) viewFields.push({ label: 'Sparse', value: app.sparse ? 'Ja' : 'Nee' })
-  if (hasValue(app.prioriteit)) viewFields.push({ label: 'Prioriteit', value: app.prioriteit })
-  if (hasValue(app.complexiteit)) viewFields.push({ label: 'Complexiteit', value: app.complexiteit })
-  if (hasValue(app.domein)) viewFields.push({ label: 'Domein', value: app.domein })
-  if (hasValue(app.impact)) viewFields.push({ label: 'Impact', value: app.impact })
-  if (hasValue(app.doel)) viewFields.push({ label: 'Doel', value: app.doel })
+
+  const basis = add('Basis')
+  if (hasValue(app.naam)) basis.push('Applicatie', app.naam)
+  basis.push('Status', getStatusLabel(app.status))
+  if (hasValue(app.domein)) basis.push('Domein', app.domein)
+  if (hasValue(app.platform)) basis.push('Platform', app.platform)
+  if (hasValue(app.complexiteit)) basis.push('Complexiteit', app.complexiteit)
+
+  const contact = add('Contact')
+  if (hasValue(app.eigenaar)) contact.push('Eigenaar', app.eigenaar)
+  if (hasValue(app.aanspreekpunt_proces)) contact.push('Aanspreekpunt proces', app.aanspreekpunt_proces)
+  if (hasValue(app.aanspreekpunt_intern)) contact.push('Aanspreekpunt Intern', app.aanspreekpunt_intern)
+  if (hasValue(app.ontwikkeld_door)) contact.push('Ontwikkeld door', app.ontwikkeld_door)
+  if (hasDateValue(app.datum_oplevering)) contact.push('Datum oplevering', app.datum_oplevering!.slice(0, 10))
+
+  const urls = add('URLs en documentatie')
+  if (hasValue(app.documentatie_url)) urls.push('Documentatie', app.documentatie_url)
+  if (hasValue(app.url_test)) urls.push('URL test', app.url_test)
+  if (hasValue(app.url_productie)) urls.push('URL productie', app.url_productie)
+  if (hasValue(app.icon_key)) {
+    const iconLabel = appIconOptions.find((o) => o.value === app.icon_key)?.label ?? app.icon_key
+    urls.push('Icoon', iconLabel)
+  }
+  if (app.handleiding_aanwezig != null) urls.push('Handleiding aanwezig', app.handleiding_aanwezig)
+  if (app.sparse != null) urls.push('Ondersteund door Sparse', app.sparse)
+
+  const intake = add('Intake (prioritering)')
+  if (hasValue(app.probleemomschrijving)) intake.push('Probleemomschrijving', app.probleemomschrijving)
+  if (hasValue(app.proces)) intake.push('Proces', app.proces)
+  if (app.frequentie_per_week != null) intake.push('Frequentie per week', String(app.frequentie_per_week))
+  if (app.minuten_per_medewerker_per_week != null) intake.push('Minuten per medewerker per week', String(app.minuten_per_medewerker_per_week))
+  if (app.aantal_medewerkers != null) intake.push('Aantal medewerkers', String(app.aantal_medewerkers))
+  if (hasValue(app.zorgimpact_type)) intake.push('Zorgimpact type', app.zorgimpact_type)
+
+  const beoordeling = add('Beoordeling')
+  if (app.zorgwaarde != null) beoordeling.push('Zorgwaarde', String(app.zorgwaarde))
+  if (app.bouwinspanning != null) beoordeling.push('Bouwinspanning', getBouwinspanningLabel(app.bouwinspanning))
+  if (app.risico != null) beoordeling.push('Risico', app.risico)
+  if (hasValue(app.beoordeling_toelichting)) beoordeling.push('Beoordeling toelichting', app.beoordeling_toelichting)
+
+  const beveiliging = add('Beveiliging')
+  if (app.beveiligingsniveau != null) beveiliging.push('Beveiligingsniveau', getBeveiligingsniveauLabel(app.beveiligingsniveau))
+
+  const overig = add('Overig')
+  if (hasValue(app.referentie_nummer)) overig.push('Referentienummer', app.referentie_nummer)
+  if (app.concept != null) overig.push('Concept', app.concept)
+  if (app.urenwinst_per_jaar != null) overig.push('Urenwinst per jaar', String(app.urenwinst_per_jaar))
+  if (app.werkbesparing_score != null) overig.push('Werkbesparing score', String(app.werkbesparing_score))
+  if (app.prioriteitsscore != null) overig.push('Prioriteitsscore', String(app.prioriteitsscore))
+
+  const sectionsWithFields = viewSections.filter((s) => s.fields.length > 0)
 
   return (
     <div className="rounded-[20px] border border-ijsselheem-accentblauw/30 bg-white p-6 shadow-sm">
@@ -227,6 +285,8 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
         <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</div>
       )}
 
+      {(showOnly === 'algemene' || showOnly === 'all') && (
+      <>
       {!editMode ? (
         <>
           <div className="mb-4 flex items-center justify-between">
@@ -252,22 +312,29 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
           </div>
           {hasValue(app.doel_app) && (
             <div className="mb-6 rounded-xl bg-ijsselheem-lichtblauw/50 border border-ijsselheem-accentblauw/30 p-4">
-              <h3 className="text-xs font-semibold uppercase text-ijsselheem-donkerblauw/70 mb-1">
+              <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-2">
                 Wat doet deze applicatie?
               </h3>
               <p className="text-ijsselheem-donkerblauw">{app.doel_app}</p>
             </div>
           )}
-          <dl className="space-y-2">
-            {viewFields.map(({ label, value }) => (
-              <div key={label}>
-                <dt className="text-xs font-semibold uppercase text-ijsselheem-donkerblauw/70">{label}</dt>
-                <dd className="mt-0.5 text-ijsselheem-donkerblauw">
-                  {typeof value === 'boolean' ? (value ? 'Ja' : 'Nee') : value}
-                </dd>
-              </div>
+          <div className="space-y-4">
+            {sectionsWithFields.map((section) => (
+              <section key={section.title} className="rounded-xl border border-ijsselheem-accentblauw/30 bg-white p-4">
+                <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-2">{section.title}</h3>
+                <dl className="space-y-2">
+                  {section.fields.map(({ label, value }) => (
+                    <div key={label}>
+                      <dt className="text-sm font-medium text-ijsselheem-donkerblauw">{label}</dt>
+                      <dd className="mt-0.5 text-ijsselheem-donkerblauw">
+                        {typeof value === 'boolean' ? (value ? 'Ja' : 'Nee') : value}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
             ))}
-          </dl>
+          </div>
         </>
       ) : (
         <>
@@ -293,243 +360,346 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Applicatie (naam)</label>
-              <input
-                type="text"
-                value={app.naam}
-                onChange={(e) => setApp({ ...app, naam: e.target.value })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Doel app</label>
-              <textarea
-                value={app.doel_app ?? ''}
-                onChange={(e) => setApp({ ...app, doel_app: e.target.value || null })}
-                rows={2}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Status</label>
-              <select
-                value={app.status}
-                onChange={(e) => setApp({ ...app, status: e.target.value as App['status'] })}
-                className="mt-1 input-ijsselheem"
-              >
-                {APP_STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Prioriteit</label>
-              <select
-                value={app.prioriteit ?? ''}
-                onChange={(e) => setApp({ ...app, prioriteit: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              >
-                <option value="">—</option>
-                {PRIORITEIT_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Platform</label>
-              <select
-                value={app.platform ?? ''}
-                onChange={(e) => setApp({ ...app, platform: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              >
-                <option value="">—</option>
-                {PLATFORM_OPTIONS.map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Complexiteit</label>
-              <select
-                value={app.complexiteit ?? ''}
-                onChange={(e) => setApp({ ...app, complexiteit: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              >
-                <option value="">—</option>
-                {COMPLEXITEIT_OPTIONS.map((c) => (
-                  <option key={c} value={c}>
-                    {c}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Eigenaar</label>
-              <input
-                type="text"
-                value={app.eigenaar ?? ''}
-                onChange={(e) => setApp({ ...app, eigenaar: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Aanspreekpunt proces</label>
-              <input
-                type="text"
-                value={app.aanspreekpunt_proces ?? ''}
-                onChange={(e) => setApp({ ...app, aanspreekpunt_proces: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Aanspreekpunt Intern</label>
-              <input
-                type="text"
-                value={app.aanspreekpunt_intern ?? ''}
-                onChange={(e) => setApp({ ...app, aanspreekpunt_intern: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Ontwikkeld door</label>
-              <input
-                type="text"
-                value={app.ontwikkeld_door ?? ''}
-                onChange={(e) => setApp({ ...app, ontwikkeld_door: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Datum oplevering</label>
-              <input
-                type="date"
-                value={app.datum_oplevering?.slice(0, 10) ?? ''}
-                onChange={(e) => setApp({ ...app, datum_oplevering: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Domein</label>
-              <input
-                type="url"
-                value={app.domein ?? ''}
-                onChange={(e) => setApp({ ...app, domein: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Documentatie</label>
-              <input
-                type="url"
-                value={app.documentatie_url ?? ''}
-                onChange={(e) => setApp({ ...app, documentatie_url: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">URL test</label>
-              <input
-                type="url"
-                value={app.url_test ?? ''}
-                onChange={(e) => setApp({ ...app, url_test: e.target.value || null })}
-                placeholder="https://..."
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">URL productie</label>
-              <input
-                type="url"
-                value={app.url_productie ?? ''}
-                onChange={(e) => setApp({ ...app, url_productie: e.target.value || null })}
-                placeholder="https://..."
-                className="mt-1 input-ijsselheem"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Icoon</label>
-              <select
-                value={app.icon_key ?? ''}
-                onChange={(e) => setApp({ ...app, icon_key: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              >
-                <option value="">— Geen icoon —</option>
-                {APP_ICON_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="handleiding_aanwezig"
-                checked={app.handleiding_aanwezig ?? false}
-                onChange={(e) => setApp({ ...app, handleiding_aanwezig: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-ijsselheem-donkerblauw focus:ring-ijsselheem-donkerblauw"
-              />
-              <label htmlFor="handleiding_aanwezig" className="text-sm text-ijsselheem-donkerblauw">
-                Handleiding aanwezig
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="sparse"
-                checked={app.sparse ?? false}
-                onChange={(e) => setApp({ ...app, sparse: e.target.checked })}
-                className="h-4 w-4 rounded border-gray-300 text-ijsselheem-donkerblauw focus:ring-ijsselheem-donkerblauw"
-              />
-              <label htmlFor="sparse" className="text-sm text-ijsselheem-donkerblauw">
-                Ondersteund door Sparse
-              </label>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Impact</label>
-              <select
-                value={app.impact ?? ''}
-                onChange={(e) => setApp({ ...app, impact: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              >
-                <option value="">—</option>
-                {IMPACT_OPTIONS.map((i) => (
-                  <option key={i} value={i}>
-                    {i}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-ijsselheem-donkerblauw">Doel (reden)</label>
-              <select
-                value={app.doel ?? ''}
-                onChange={(e) => setApp({ ...app, doel: e.target.value || null })}
-                className="mt-1 input-ijsselheem"
-              >
-                <option value="">—</option>
-                {DOEL_OPTIONS.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <div className="space-y-6">
+            <section>
+              <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-3">Basis</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Applicatie (naam)</label>
+                  <input
+                    type="text"
+                    value={app.naam}
+                    onChange={(e) => setApp({ ...app, naam: e.target.value })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Status</label>
+                  <select
+                    value={app.status}
+                    onChange={(e) => setApp({ ...app, status: e.target.value as App['status'] })}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    {appStatusOptions.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Domein</label>
+                  <select
+                    value={app.domein ?? ''}
+                    onChange={(e) => setApp({ ...app, domein: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    <option value="">—</option>
+                    {domeinOptions.map((d) => (
+                      <option key={d.value} value={d.value}>
+                        {d.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Platform</label>
+                  <select
+                    value={app.platform ?? ''}
+                    onChange={(e) => setApp({ ...app, platform: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    <option value="">—</option>
+                    {platformOptions.map((p) => (
+                      <option key={p.value} value={p.value}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Complexiteit</label>
+                  <select
+                    value={app.complexiteit ?? ''}
+                    onChange={(e) => setApp({ ...app, complexiteit: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    <option value="">—</option>
+                    {complexiteitOptions.map((c) => (
+                      <option key={c.value} value={c.value}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-3">Contact</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Eigenaar</label>
+                  <input
+                    type="text"
+                    value={app.eigenaar ?? ''}
+                    onChange={(e) => setApp({ ...app, eigenaar: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aanspreekpunt proces</label>
+                  <input
+                    type="text"
+                    value={app.aanspreekpunt_proces ?? ''}
+                    onChange={(e) => setApp({ ...app, aanspreekpunt_proces: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aanspreekpunt Intern</label>
+                  <input
+                    type="text"
+                    value={app.aanspreekpunt_intern ?? ''}
+                    onChange={(e) => setApp({ ...app, aanspreekpunt_intern: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Datum oplevering</label>
+                  <input
+                    type="date"
+                    value={app.datum_oplevering?.slice(0, 10) ?? ''}
+                    onChange={(e) => setApp({ ...app, datum_oplevering: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-3">Intake (prioritering)</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Probleemomschrijving</label>
+                  <textarea
+                    value={app.probleemomschrijving ?? ''}
+                    onChange={(e) => setApp({ ...app, probleemomschrijving: e.target.value || null })}
+                    rows={2}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Proces</label>
+                  <textarea
+                    value={app.proces ?? ''}
+                    onChange={(e) => setApp({ ...app, proces: e.target.value || null })}
+                    rows={2}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Frequentie per week</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={app.frequentie_per_week ?? ''}
+                    onChange={(e) => setApp({ ...app, frequentie_per_week: e.target.value === '' ? null : parseInt(e.target.value, 10) || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Minuten per medewerker per week</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={app.minuten_per_medewerker_per_week ?? ''}
+                    onChange={(e) => setApp({ ...app, minuten_per_medewerker_per_week: e.target.value === '' ? null : parseInt(e.target.value, 10) || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aantal medewerkers</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={app.aantal_medewerkers ?? ''}
+                    onChange={(e) => setApp({ ...app, aantal_medewerkers: e.target.value === '' ? null : parseInt(e.target.value, 10) || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Zorgimpact type</label>
+                  <select
+                    value={app.zorgimpact_type ?? ''}
+                    onChange={(e) => setApp({ ...app, zorgimpact_type: e.target.value || null })}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    <option value="">—</option>
+                    {zorgimpactTypeOptions.map((z) => (
+                      <option key={z.value} value={z.value}>
+                        {z.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-3">Beoordeling</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Zorgwaarde (1–5)</label>
+                  <select
+                    value={app.zorgwaarde ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      const n = v === '' ? null : parseInt(v, 10)
+                      setApp({ ...app, zorgwaarde: v === '' ? null : (Number.isInteger(n) ? n : null) })
+                    }}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    <option value="">—</option>
+                    {zorgwaardeOptions.map((z) => (
+                      <option key={z.value} value={z.value}>
+                        {z.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Bouwinspanning</label>
+                  <select
+                    value={app.bouwinspanning ?? ''}
+                    onChange={(e) => setApp({ ...app, bouwinspanning: (e.target.value || null) as App['bouwinspanning'] })}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    <option value="">—</option>
+                    {bouwinspanningOptions.map((b) => (
+                      <option key={b.value} value={b.value}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 sm:col-span-2">
+                  <input
+                    type="checkbox"
+                    id="risico"
+                    checked={app.risico ?? false}
+                    onChange={(e) => setApp({ ...app, risico: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 text-ijsselheem-donkerblauw focus:ring-ijsselheem-donkerblauw"
+                  />
+                  <label htmlFor="risico" className="text-sm text-ijsselheem-donkerblauw">
+                    Risico
+                  </label>
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Beoordeling toelichting</label>
+                  <textarea
+                    value={app.beoordeling_toelichting ?? ''}
+                    onChange={(e) => setApp({ ...app, beoordeling_toelichting: e.target.value || null })}
+                    rows={2}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-3">Beveiliging</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Beveiligingsniveau</label>
+                  <select
+                    value={app.beveiligingsniveau ?? ''}
+                    onChange={(e) => setApp({ ...app, beveiligingsniveau: (e.target.value || null) as App['beveiligingsniveau'] })}
+                    className="mt-1 input-ijsselheem"
+                  >
+                    <option value="">—</option>
+                    {BEVEILIGINGSNIVEAU_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-3">Overig</h3>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {hasValue(app.referentie_nummer) && (
+                  <div>
+                    <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Referentienummer</label>
+                    <input
+                      type="text"
+                      value={app.referentie_nummer ?? ''}
+                      readOnly
+                      className="mt-1 input-ijsselheem bg-gray-100"
+                    />
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="concept"
+                    checked={app.concept ?? false}
+                    onChange={(e) => setApp({ ...app, concept: e.target.checked })}
+                    className="h-4 w-4 rounded border-gray-300 text-ijsselheem-donkerblauw focus:ring-ijsselheem-donkerblauw"
+                  />
+                  <label htmlFor="concept" className="text-sm text-ijsselheem-donkerblauw">
+                    Concept
+                  </label>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Urenwinst per jaar</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={app.urenwinst_per_jaar ?? ''}
+                    onChange={(e) => setApp({ ...app, urenwinst_per_jaar: e.target.value === '' ? null : parseFloat(e.target.value) || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Werkbesparing score</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={app.werkbesparing_score ?? ''}
+                    onChange={(e) => setApp({ ...app, werkbesparing_score: e.target.value === '' ? null : parseFloat(e.target.value) || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Prioriteitsscore</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.1}
+                    value={app.prioriteitsscore ?? ''}
+                    onChange={(e) => setApp({ ...app, prioriteitsscore: e.target.value === '' ? null : parseFloat(e.target.value) || null })}
+                    className="mt-1 input-ijsselheem"
+                  />
+                </div>
+              </div>
+            </section>
           </div>
         </>
       )}
+      </>
+      )}
 
+      {(showOnly === 'features' || showOnly === 'all') && (
+      <>
       {/* Features-sectie */}
-      <section className="mt-8 border-t border-ijsselheem-accentblauw/30 pt-6">
-        <h3 className="text-sm font-semibold uppercase text-ijsselheem-donkerblauw/70 mb-3">Features</h3>
+      <section className={showOnly === 'features' ? '' : 'mt-8 border-t border-ijsselheem-accentblauw/30 pt-6'}>
+        <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2 mb-3">Features</h3>
         <p className="text-sm text-ijsselheem-donkerblauw/80 mb-3">
           Nieuwe functionaliteit: bewerk de Basisfunctionaliteit of voeg een feature toe.
         </p>
@@ -540,11 +710,11 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
           <p className="text-sm text-ijsselheem-donkerblauw">Laden…</p>
         ) : (
           <>
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {features.map((feature) => (
                 <li
                   key={feature.id}
-                  className="rounded-xl border border-ijsselheem-accentblauw/20 bg-ijsselheem-lichtblauw/30 p-3"
+                  className="rounded-xl border border-ijsselheem-accentblauw/30 bg-white p-4 shadow-sm"
                 >
                   {editingFeatureId === feature.id && editFeatureForm ? (
                     <div className="space-y-3">
@@ -594,21 +764,12 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
                           className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
                           title="Workflow-status voor Backlog en Planning"
                         >
-                          {APP_STATUS_OPTIONS.filter((o) => o.value !== 'afgewezen').map((o) => (
+                          {appStatusOptions.filter((o) => o.value !== 'afgewezen').map((o) => (
                             <option key={o.value} value={o.value}>
-                              {getStatusLabel(o.value)}
+                              {getStatusLabel(o.value as AppStatusDb)}
                             </option>
                           ))}
                         </select>
-                        <input
-                          type="number"
-                          value={editFeatureForm.prioriteit ?? ''}
-                          onChange={(e) =>
-                            setEditFeatureForm((f) => (f ? { ...f, prioriteit: e.target.value ? parseInt(e.target.value, 10) : null } : null))
-                          }
-                          className="w-20 rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
-                          placeholder="Prio"
-                        />
                         <button
                           type="button"
                           onClick={handleSaveFeature}
@@ -630,31 +791,39 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
                       </div>
                     </div>
                   ) : (
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <div>
-                        <span className="font-semibold text-ijsselheem-donkerblauw">
-                          {feature.naam}
-                          {feature.naam === BASISFEATURE_NAAM && (
-                            <span className="ml-1 text-xs font-normal text-ijsselheem-donkerblauw/70">
-                              (minimaal nodig)
-                            </span>
-                          )}
-                        </span>
-                        <p className="mt-0.5 text-sm text-ijsselheem-donkerblauw/80">
-                          <span className="text-ijsselheem-donkerblauw/70">Status (roadmap): </span>
-                          {getFeatureStatusLabel(feature.status)}
-                          {feature.prioriteit != null && ` · Prioriteit ${feature.prioriteit}`}
-                        </p>
-                        <p className="mt-0.5 text-xs text-ijsselheem-donkerblauw/70">
-                          Status feature: {getStatusLabel((feature.planning_status ?? 'wensenlijst') as AppStatusDb)}
-                        </p>
-                        {feature.beschrijving && (
-                          <p className="mt-1 text-sm text-ijsselheem-donkerblauw line-clamp-2">
-                            {feature.beschrijving}
-                          </p>
+                    <div>
+                      <h4 className="text-base font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/20 pb-2">
+                        {feature.naam}
+                        {feature.naam === BASISFEATURE_NAAM && (
+                          <span className="ml-1 text-xs font-normal text-ijsselheem-donkerblauw/70">
+                            (minimaal nodig)
+                          </span>
                         )}
+                      </h4>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span
+                          className="rounded-md bg-ijsselheem-lichtblauw/70 px-2 py-0.5 text-xs font-medium text-ijsselheem-donkerblauw"
+                          title="Status roadmap"
+                        >
+                          {getFeatureStatusLabel(feature.status)}
+                        </span>
+                        <span
+                          className="rounded-md border border-ijsselheem-accentblauw/40 bg-white px-2 py-0.5 text-xs font-medium text-ijsselheem-donkerblauw"
+                          title="Status workflow"
+                        >
+                          {getStatusLabel((feature.planning_status ?? 'wensenlijst') as AppStatusDb)}
+                        </span>
                       </div>
-                      <div className="flex gap-2 flex-wrap">
+                      {feature.beschrijving ? (
+                        <p className="mt-3 text-sm text-ijsselheem-donkerblauw/90 line-clamp-3 leading-relaxed">
+                          {feature.beschrijving}
+                        </p>
+                      ) : (
+                        <p className="mt-3 text-sm text-ijsselheem-donkerblauw/50 italic">
+                          Geen beschrijving
+                        </p>
+                      )}
+                      <div className="mt-3 pt-3 border-t border-ijsselheem-accentblauw/20 flex flex-wrap gap-2">
                         <Link
                           to={`/backlog/feature/${feature.id}`}
                           className="rounded-[16px] border border-ijsselheem-donkerblauw bg-ijsselheem-donkerblauw px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
@@ -726,18 +895,6 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
                       </option>
                     ))}
                   </select>
-                  <input
-                    type="number"
-                    value={addFeatureForm.prioriteit ?? ''}
-                    onChange={(e) =>
-                      setAddFeatureForm((f) => ({
-                        ...f,
-                        prioriteit: e.target.value ? parseInt(e.target.value, 10) : null,
-                      }))
-                    }
-                    className="w-20 rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
-                    placeholder="Prio"
-                  />
                   <button
                     type="submit"
                     disabled={savingFeature || !addFeatureForm.naam.trim()}
@@ -749,7 +906,7 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
                     type="button"
                     onClick={() => {
                       setShowAddFeature(false)
-                      setAddFeatureForm({ naam: '', beschrijving: '', prioriteit: null, status: 'gepland' })
+                      setAddFeatureForm({ naam: '', beschrijving: '', status: 'gepland' })
                     }}
                     className="rounded-[16px] border border-gray-300 bg-white px-3 py-1.5 text-sm text-ijsselheem-donkerblauw"
                   >
@@ -761,6 +918,8 @@ export function AppDetail({ app: initialApp, onSaved, onCancel }: AppDetailProps
           </>
         )}
       </section>
+      </>
+      )}
     </div>
   )
 }

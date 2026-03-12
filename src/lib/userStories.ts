@@ -1,5 +1,7 @@
 import { supabase } from '@/lib/supabase'
 
+export type WeergaveType = 'user_story' | 'taaklijst'
+
 export interface UserStory {
   id: string
   app_id: string
@@ -7,6 +9,7 @@ export interface UserStory {
   beschrijving: string | null
   acceptatiecriteria: string | null
   volgorde: number
+  weergave_type: WeergaveType
   created_at: string
   updated_at: string
 }
@@ -16,10 +19,11 @@ export interface UserStoryInsert {
   beschrijving?: string | null
   acceptatiecriteria?: string | null
   volgorde?: number
+  weergave_type?: WeergaveType
 }
 
 export type UserStoryUpdate = Partial<
-  Pick<UserStory, 'titel' | 'beschrijving' | 'acceptatiecriteria' | 'volgorde'>
+  Pick<UserStory, 'titel' | 'beschrijving' | 'acceptatiecriteria' | 'volgorde' | 'weergave_type'>
 >
 
 /** User stories voor een app, gesorteerd op volgorde dan titel */
@@ -47,6 +51,7 @@ export async function createUserStory(
       beschrijving: payload.beschrijving ?? null,
       acceptatiecriteria: payload.acceptatiecriteria ?? null,
       volgorde: payload.volgorde ?? 0,
+      weergave_type: payload.weergave_type ?? 'taaklijst',
     })
     .select()
     .single()

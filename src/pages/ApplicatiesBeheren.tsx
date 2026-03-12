@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchAllApps } from '@/lib/apps'
 import type { App } from '@/types/app'
 import { getStatusLabel } from '@/types/app'
+import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 import { cn } from '@/lib/utils'
 
 export function ApplicatiesBeheren() {
@@ -33,10 +34,10 @@ export function ApplicatiesBeheren() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">
-        Applicaties beheren
+        Applicatiebeheer
       </h2>
       <p className="text-sm text-ijsselheem-donkerblauw/90">
-        Overzicht van alle applicaties. Klik op <strong>Beheren</strong> om basisinfo (URL, uitleg, icoon), context, features en user stories van een app te bekijken en aan te passen.
+        Overzicht van alle applicaties. Klik op <strong>Beheren</strong> om basisinfo (URL, uitleg, icoon), context, features en user stories of taken van een app te bekijken en aan te passen.
       </p>
 
       {loading ? (
@@ -77,8 +78,11 @@ export function ApplicatiesBeheren() {
                     key={app.id}
                     className="border-t border-ijsselheem-accentblauw/20 hover:bg-ijsselheem-lichtblauw/30"
                   >
-                    <td className="p-3 font-medium text-ijsselheem-donkerblauw">
-                      {app.naam}
+                    <td className="p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-ijsselheem-donkerblauw">{app.naam}</span>
+                        <BeveiligingsniveauBadge level={app.beveiligingsniveau} shortLabel />
+                      </div>
                     </td>
                     <td className="p-3 text-ijsselheem-donkerblauw/90">
                       {getStatusLabel(app.status)}

@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UI-voorbeelden: User stories of taken (Optie A, B, C)</title>
+  <style>
+    :root {
+      --donkerblauw: #25377f;
+      --lichtblauw: #cbe9fb;
+      --accentblauw: #a1d9f7;
+      --middenblauw: #908ebc;
+    }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f5f5f5; padding: 1.5rem; color: var(--donkerblauw); max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.25rem; margin-bottom: 0.5rem; }
+    .intro { font-size: 0.875rem; color: var(--donkerblauw); opacity: 0.85; margin-bottom: 2rem; }
+    section.optie { background: white; border: 1px solid rgba(161, 217, 247, 0.5); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 2rem; }
+    section.optie h2 { font-size: 1rem; font-weight: 600; color: var(--donkerblauw); border-bottom: 1px solid rgba(161, 217, 247, 0.4); padding-bottom: 0.5rem; margin: 0 0 0.75rem 0; }
+    .sectie-titel { font-size: 0.875rem; font-weight: 600; color: var(--donkerblauw); margin-bottom: 0.5rem; }
+    .sectie-uitleg { font-size: 0.75rem; color: var(--donkerblauw); opacity: 0.75; margin-bottom: 0.75rem; }
+    ul.lijst { list-style: none; padding: 0; margin: 0; }
+    .card { background: rgba(203, 233, 251, 0.3); border: 1px solid rgba(161, 217, 247, 0.25); border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; }
+    .card-titel { font-weight: 500; font-size: 0.875rem; color: var(--donkerblauw); }
+    .card-desc { font-size: 0.75rem; color: var(--donkerblauw); opacity: 0.85; margin-top: 0.25rem; }
+    .card-taken { font-size: 0.75rem; color: var(--donkerblauw); opacity: 0.85; margin-top: 0.35rem; padding-left: 1rem; }
+    .card-taken li { margin: 0.15rem 0; }
+    .badge { display: inline-block; font-size: 0.65rem; font-weight: 500; padding: 0.15rem 0.5rem; border-radius: 6px; margin-left: 0.5rem; vertical-align: middle; }
+    .badge-uitgebreid { background: rgba(144, 142, 188, 0.25); color: var(--middenblauw); }
+    .badge-eenvoudig { background: rgba(190, 176, 34, 0.2); color: #7a7215; }
+    .acties { font-size: 0.75rem; margin-top: 0.5rem; }
+    .acties a { color: var(--donkerblauw); opacity: 0.8; margin-right: 0.75rem; text-decoration: none; }
+    .acties a:hover { text-decoration: underline; }
+    .acties .verwijderen { color: #b91c1c; }
+    .lege-status { font-size: 0.875rem; color: var(--donkerblauw); opacity: 0.75; padding: 1rem; text-align: center; border: 1px dashed rgba(161, 217, 247, 0.6); border-radius: 8px; margin-bottom: 0.75rem; }
+    .subkop { font-size: 0.8rem; font-weight: 600; color: var(--donkerblauw); margin: 1rem 0 0.5rem 0; }
+    .toelichting { font-size: 0.75rem; color: var(--donkerblauw); opacity: 0.8; margin-bottom: 0.75rem; line-height: 1.4; }
+    .form-zone { border-top: 1px solid rgba(161, 217, 247, 0.35); padding-top: 0.75rem; margin-top: 0.75rem; }
+    .form-label { font-size: 0.75rem; font-weight: 500; color: var(--donkerblauw); opacity: 0.8; margin-bottom: 0.35rem; display: block; }
+    .btn { display: inline-block; padding: 0.4rem 0.75rem; font-size: 0.875rem; border-radius: 16px; border: 1px solid var(--donkerblauw); color: var(--donkerblauw); background: white; cursor: pointer; margin-top: 0.5rem; }
+    .btn:hover { background: var(--lichtblauw); }
+  </style>
+</head>
+<body>
+  <h1>User stories of taken – drie UI-voorbeelden</h1>
+  <p class="intro">Dit bestand laat drie mogelijke UI-varianten zien voor de sectie "User stories of taken". Kies er één (of een combinatie) om in de app door te voeren. Items zijn niet afvinkbaar; sprintplanning gebeurt op het werkbord.</p>
+
+  <!-- ========== OPTIE A: Type-badge per item ========== -->
+  <section class="optie">
+    <h2>Optie A – Type-badge per item</h2>
+    <p class="toelichting">Elk item toont een klein label (Uitgebreide user story / Eenvoudige userstory) zodat je in één oogopslag ziet wat het is.</p>
+
+    <p class="sectie-titel">User stories of taken</p>
+    <p class="sectie-uitleg">Voeg hier user stories of taken toe voor dit programma.</p>
+
+    <ul class="lijst">
+      <li class="card">
+        <span class="card-titel">Als zorgverlener wil ik een overzicht van afspraken zodat ik sneller kan plannen.</span>
+        <span class="badge badge-uitgebreid">Uitgebreide user story</span>
+        <div class="card-desc">Beschrijving: centrale agenda per locatie, filter op cliënt.</div>
+        <div class="card-desc">Acceptatie: overzicht laadt binnen 2 seconden.</div>
+        <div class="acties"><a href="#">Bewerken</a><a href="#" class="verwijderen">Verwijderen</a></div>
+      </li>
+      <li class="card">
+        <span class="card-titel">Documentatie en instructies</span>
+        <span class="badge badge-eenvoudig">Eenvoudige userstory</span>
+        <ul class="card-taken">
+          <li>Handleiding bijwerken</li>
+          <li>Video-instructie toevoegen</li>
+          <li>FAQ op intranet plaatsen</li>
+        </ul>
+        <div class="acties"><a href="#">Bewerken</a><a href="#" class="verwijderen">Verwijderen</a></div>
+      </li>
+      <li class="card">
+        <span class="card-titel">Als beheerder wil ik rapporten exporteren zodat ik analyses kan maken.</span>
+        <span class="badge badge-uitgebreid">Uitgebreide user story</span>
+        <div class="card-desc">Export naar Excel en PDF, datumfilter.</div>
+        <div class="acties"><a href="#">Bewerken</a><a href="#" class="verwijderen">Verwijderen</a></div>
+      </li>
+    </ul>
+
+    <div class="form-zone">
+      <p class="form-label">Nieuwe user story of losse taken</p>
+      <p class="form-label">Keuze: ○ Uitgebreide user story  ○ Eenvoudige userstory</p>
+      <p style="font-size:0.75rem; color:#25377f; opacity:0.7;">Titel, velden, Kwaliteitscheck…</p>
+      <button type="button" class="btn">Toevoegen</button>
+    </div>
+  </section>
+
+  <!-- ========== OPTIE B: Hiërarchie + lege status ========== -->
+  <section class="optie">
+    <h2>Optie B – Betere leesbaarheid en hiërarchie</h2>
+    <p class="toelichting">Vaste structuur, duidelijke koppen en een duidelijke lege-statusboodschap. Geen type-badges; type blijkt uit de inhoud (titel + beschrijving vs. titel + takenlijst).</p>
+
+    <p class="sectie-titel">User stories of taken</p>
+    <p class="sectie-uitleg">Voeg hier user stories of taken toe voor dit programma.</p>
+
+    <p class="subkop">Overzicht</p>
+    <ul class="lijst">
+      <li class="card">
+        <p class="card-titel" style="margin:0;">Als zorgverlener wil ik een overzicht van afspraken zodat ik sneller kan plannen.</p>
+        <p class="card-desc" style="margin:0.25rem 0 0 0;"><strong>Beschrijving:</strong> centrale agenda per locatie, filter op cliënt.</p>
+        <p class="card-desc" style="margin:0.15rem 0 0 0;"><strong>Acceptatie:</strong> overzicht laadt binnen 2 seconden.</p>
+        <div class="acties"><a href="#">Bewerken</a><a href="#" class="verwijderen">Verwijderen</a></div>
+      </li>
+      <li class="card">
+        <p class="card-titel" style="margin:0;">Documentatie en instructies</p>
+        <ul class="card-taken" style="margin:0.25rem 0 0 0;">
+          <li>Handleiding bijwerken</li>
+          <li>Video-instructie toevoegen</li>
+          <li>FAQ op intranet plaatsen</li>
+        </ul>
+        <div class="acties"><a href="#">Bewerken</a><a href="#" class="verwijderen">Verwijderen</a></div>
+      </li>
+    </ul>
+
+    <p class="subkop">Nieuwe toevoegen</p>
+    <p class="form-label">○ Uitgebreide user story  ○ Eenvoudige userstory</p>
+    <button type="button" class="btn">Toevoegen</button>
+  </section>
+
+  <!-- ========== OPTIE B met lege lijst ========== -->
+  <section class="optie">
+    <h2>Optie B – Zelfde, maar met lege lijst</h2>
+    <p class="sectie-titel">User stories of taken</p>
+    <p class="sectie-uitleg">Voeg hier user stories of taken toe voor dit programma.</p>
+    <p class="subkop">Overzicht</p>
+    <div class="lege-status">
+      Nog geen user stories of taken. Voeg hieronder een uitgebreide user story of een eenvoudige userstory toe.
+    </div>
+    <p class="subkop">Nieuwe toevoegen</p>
+    <p class="form-label">○ Uitgebreide user story  ○ Eenvoudige userstory</p>
+    <button type="button" class="btn">Toevoegen</button>
+  </section>
+
+  <!-- ========== OPTIE C: Sectie-structuur + toelichting ========== -->
+  <section class="optie">
+    <h2>Optie C – Sectie-structuur en toelichting</h2>
+    <p class="toelichting">Korte uitleg onder de titel: wat is een uitgebreide user story en wat is een eenvoudige userstory. Optioneel subkoppen voor Lijst en Nieuwe toevoegen.</p>
+
+    <p class="sectie-titel">User stories of taken</p>
+    <p class="toelichting" style="margin-top:0.25rem;">
+      <strong>Uitgebreide user story:</strong> rol, handeling, acceptatiecriteria.<br>
+      <strong>Eenvoudige userstory:</strong> titel met een lijst van taken.<br>
+      Sprintplanning gebeurt op het werkbord; hier breng je alleen de inhoud in kaart.
+    </p>
+
+    <p class="subkop">Lijst</p>
+    <ul class="lijst">
+      <li class="card">
+        <span class="card-titel">Als zorgverlener wil ik een overzicht van afspraken zodat ik sneller kan plannen.</span>
+        <div class="card-desc">Beschrijving: centrale agenda. Acceptatie: laadt binnen 2 sec.</div>
+        <div class="acties"><a href="#">Bewerken</a><a href="#" class="verwijderen">Verwijderen</a></div>
+      </li>
+      <li class="card">
+        <span class="card-titel">Documentatie en instructies</span>
+        <ul class="card-taken">
+          <li>Handleiding bijwerken</li>
+          <li>Video-instructie toevoegen</li>
+        </ul>
+        <div class="acties"><a href="#">Bewerken</a><a href="#" class="verwijderen">Verwijderen</a></div>
+      </li>
+    </ul>
+
+    <p class="subkop">Nieuwe toevoegen</p>
+    <p class="form-label">○ Uitgebreide user story  ○ Eenvoudige userstory</p>
+    <button type="button" class="btn">Toevoegen</button>
+  </section>
+
+  <p class="intro" style="margin-top:2rem;">
+    <strong>Samenvatting:</strong> A = type-badge per item. B = duidelijke koppen + lege status. C = toelichting + subkoppen. Je kunt A met B of C combineren (bijv. badges + toelichting).
+  </p>
+</body>
+</html>

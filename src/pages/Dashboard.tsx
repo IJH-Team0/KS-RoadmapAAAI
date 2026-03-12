@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { fetchAppsForBacklog } from '@/lib/apps'
 import { fetchStatusCounts } from '@/lib/apps'
 import type { App } from '@/types/app'
+import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
 export function Dashboard() {
   const [apps, setApps] = useState<App[]>([])
@@ -125,12 +126,15 @@ export function Dashboard() {
               {top10.map((app) => (
                 <tr key={app.id} className="border-t border-ijsselheem-accentblauw/20">
                   <td className="p-3">
-                    <Link
-                      to={`/backlog/${app.id}`}
-                      className="font-medium text-ijsselheem-donkerblauw hover:underline"
-                    >
-                      {app.naam}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Link
+                        to={`/backlog/${app.id}`}
+                        className="font-medium text-ijsselheem-donkerblauw hover:underline"
+                      >
+                        {app.naam}
+                      </Link>
+                      <BeveiligingsniveauBadge level={app.beveiligingsniveau} shortLabel />
+                    </div>
                   </td>
                   <td className="p-3 text-ijsselheem-donkerblauw">{app.domein ?? '—'}</td>
                   <td className="p-3 text-ijsselheem-donkerblauw">{app.zorgwaarde ?? '—'}</td>

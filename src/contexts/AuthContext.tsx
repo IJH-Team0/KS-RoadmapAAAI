@@ -4,9 +4,15 @@ import { supabase } from '@/lib/supabase'
 
 export type UserRole = 'gebruiker' | 'admin'
 
+const VIEW_AS_STORAGE_KEY = 'roadmap-aaai-view-as'
+
 interface AuthContextType {
   user: SupabaseUser | null
   role: UserRole | null
+  displayName: string | null
+  /** Voor layout/nav: admin kan tijdelijk als gebruiker kijken */
+  effectiveRole: UserRole | null
+  setViewAsRole: (viewAs: UserRole) => void
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
   signOut: () => Promise<void>
@@ -17,7 +23,21 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [role, setRole] = useState<UserRole | null>(null)
+  const [displayName, setDisplayName] = useState<string | null>(null)
+  const [viewAsRole, setViewAsRoleState] = useState<UserRole>(() => {
+    if (typeof window === 'undefined') return 'admin'
+    const stored = localStorage.getItem(VIEW_AS_STORAGE_KEY)
+    return stored === 'gebruiker' ? 'gebruiker' : 'admin'
+  })
   const [loading, setLoading] = useState(true)
+
+  const effectiveRole: UserRole | null =
+    role === 'admin' && viewAsRole === 'gebruiker' ? 'gebruiker' : role
+
+  function setViewAsRole(viewAs: UserRole) {
+    setViewAsRoleState(viewAs)
+    localStorage.setItem(VIEW_AS_STORAGE_KEY, viewAs)
+  }
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -36,16 +56,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user?.id) {
       setRole(null)
+      setDisplayName(null)
       return
     }
     supabase
       .from('user_profiles')
-      .select('role')
+      .select('role, display_name')
       .eq('id', user.id)
       .single()
       .then(
-        ({ data }) => setRole((data?.role as UserRole) ?? null),
-        () => setRole(null)
+        ({ data }) => {
+          setRole((data?.role as UserRole) ?? null)
+          setDisplayName(data?.display_name ?? null)
+        },
+        () => {
+          setRole(null)
+          setDisplayName(null)
+        }
       )
   }, [user?.id])
 
@@ -59,10 +86,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw error
     setUser(null)
     setRole(null)
+    setDisplayName(null)
   }
 
   return (
-    <AuthContext.Provider value={{ user, role, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, role, displayName, effectiveRole, setViewAsRole, loading, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   )

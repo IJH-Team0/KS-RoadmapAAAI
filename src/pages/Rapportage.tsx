@@ -1,9 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchAppsForBacklog } from '@/lib/apps'
 import type { App, AppStatusDb } from '@/types/app'
-import { APP_STATUS_OPTIONS, DOMEIN_OPTIONS } from '@/types/app'
+import { useReferenceOptions } from '@/hooks/useReferenceOptions'
 
 export function Rapportage() {
+  const { options: domeinOptions } = useReferenceOptions('domein')
+  const { options: appStatusOptions } = useReferenceOptions('app_status')
   const [apps, setApps] = useState<App[]>([])
   const [loading, setLoading] = useState(true)
   const [filterDomein, setFilterDomein] = useState('')
@@ -96,8 +98,8 @@ export function Rapportage() {
             className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
           >
             <option value="">Alle</option>
-            {DOMEIN_OPTIONS.map((d) => (
-              <option key={d} value={d}>{d}</option>
+            {domeinOptions.map((d) => (
+              <option key={d.value} value={d.value}>{d.label}</option>
             ))}
           </select>
         </label>
@@ -109,7 +111,7 @@ export function Rapportage() {
             className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
           >
             <option value="">Alle</option>
-            {APP_STATUS_OPTIONS.map((o) => (
+            {appStatusOptions.map((o) => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>

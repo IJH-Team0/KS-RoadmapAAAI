@@ -8,6 +8,7 @@ import {
 } from '@/lib/roadmap'
 import type { AppStatusDb } from '@/types/app'
 import type { BacklogFeatureRow } from '@/types/roadmap'
+import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
 // Scrum-workflow: wensenlijst → user stories maken → sprintbaar → ontwikkeling → test → productie
 const KANBAN_STATUSES: AppStatusDb[] = [
@@ -29,7 +30,7 @@ const MANUAL_PHASES: AppStatusDb[] = [
 
 const COLLAPSED_BUCKETS_KEY = 'planning-collapsed-buckets'
 
-/** Standaard ingeklapt: Wensenlijst, User stories maken, Productie */
+/** Standaard ingeklapt: Wensenlijst, User stories of taken maken, Productie */
 const DEFAULT_COLLAPSED = new Set<AppStatusDb>(['wensenlijst', 'stories_maken', 'in_productie'])
 
 function loadCollapsedBuckets(): Set<AppStatusDb> {
@@ -54,7 +55,7 @@ function saveCollapsedBuckets(set: Set<AppStatusDb>) {
 
 const COLUMN_LABELS: Record<AppStatusDb, string> = {
   wensenlijst: 'Wensenlijst',
-  stories_maken: 'User stories maken',
+  stories_maken: 'User stories of taken maken',
   in_voorbereiding: 'Sprintbaar',
   in_ontwikkeling: 'In ontwikkeling',
   in_testfase: 'Test',
@@ -94,9 +95,7 @@ export function Planning() {
   }, [])
 
   useEffect(() => {
-    fetchFeaturesForPlanning()
-      .then(setRows)
-      .finally(() => setLoading(false))
+    fetchFeaturesForPlanning().then(setRows).finally(() => setLoading(false))
   }, [])
 
   const byStatus = KANBAN_STATUSES.reduce(
@@ -130,20 +129,20 @@ export function Planning() {
   if (loading) return <p className="text-ijsselheem-donkerblauw">Laden…</p>
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 w-full min-w-0">
       <div>
         <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">Planning</h2>
         <p className="mt-1 text-sm text-ijsselheem-donkerblauw/80 max-w-2xl">
-          Scrum-workflow op <strong>feature</strong>-niveau: Wensenlijst → User stories maken → Sprintbaar → In ontwikkeling → Test → Productie. De eerste stappen (Wensenlijst, User stories maken) gaan automatisch via backlog en beoordeling; op dit bord kun je ze niet handmatig wijzigen. Vanaf Sprintbaar verplaats je handmatig naar In ontwikkeling, Test of Productie.
+          Scrum-workflow op <strong>feature</strong>-niveau: Wensenlijst → User stories of taken maken → Sprintbaar → In ontwikkeling → Test → Productie. De eerste stappen (Wensenlijst, User stories of taken maken) gaan automatisch via backlog en beoordeling; op dit bord kun je ze niet handmatig wijzigen. Vanaf Sprintbaar verplaats je handmatig naar In ontwikkeling, Test of Productie.
         </p>
       </div>
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex w-full min-w-0 gap-4 overflow-x-auto pb-4">
         {KANBAN_STATUSES.map((status) => {
           const collapsed = collapsedBuckets.has(status)
           return (
           <div
             key={status}
-            className={`flex-shrink-0 rounded-xl border border-ijsselheem-accentblauw/30 bg-white flex flex-col ${collapsed ? 'w-14 min-h-[4rem]' : 'w-72 min-h-[6rem]'}`}
+            className={`rounded-xl border border-ijsselheem-accentblauw/30 bg-white flex flex-col ${collapsed ? 'flex-shrink-0 w-14 min-h-[4rem]' : 'flex-1 min-w-64 max-w-96 min-h-[6rem]'}`}
           >
             <div
               className={`border-b border-ijsselheem-accentblauw/30 bg-ijsselheem-lichtblauw/50 flex shrink-0 ${collapsed ? 'flex-col items-center justify-center gap-2 p-2 min-h-[4rem]' : 'flex-row items-center justify-between gap-2 p-3'}`}
@@ -200,12 +199,15 @@ export function Planning() {
                   className="rounded-lg border border-ijsselheem-accentblauw/30 bg-white p-2.5 shadow-sm hover:bg-ijsselheem-lichtblauw/30 transition border-l-4 border-l-ijsselheem-donkerblauw/80"
                 >
                   <div className="flex items-start justify-between gap-2">
-                    <Link
-                      to={`/backlog/feature/${row.feature.id}`}
-                      className="font-medium text-ijsselheem-donkerblauw hover:underline text-sm leading-tight flex-1 min-w-0"
-                    >
-                      {row.app_naam} · {row.feature.naam}
-                    </Link>
+                    <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                      <Link
+                        to={`/backlog/feature/${row.feature.id}`}
+                        className="font-medium text-ijsselheem-donkerblauw hover:underline text-sm leading-tight"
+                      >
+                        {row.app_naam} · {row.feature.naam}
+                      </Link>
+                      <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />
+                    </div>
                     {MANUAL_PHASES.includes((row.feature.planning_status ?? 'wensenlijst') as AppStatusDb) && (() => {
                       const prev = getPrevStatus(status)
                       const next = getNextStatus(status)
@@ -244,6 +246,11 @@ export function Planning() {
                     {row.feature.urenwinst_per_jaar != null && ` · ${row.feature.urenwinst_per_jaar.toLocaleString('nl-NL', { maximumFractionDigits: 0 })} u/j`}
                     {row.feature.zorgwaarde != null && ` · ZW ${row.feature.zorgwaarde}`}
                   </p>
+                  {row.app_aanspreekpunt_intern && (
+                    <p className="mt-1 text-xs text-ijsselheem-donkerblauw/70">
+                      Aanspr. {row.app_aanspreekpunt_intern}
+                    </p>
+                  )}
                 </div>
               ))}
             </div>

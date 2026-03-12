@@ -11,8 +11,10 @@ export default {
         'ijsselheem-lichtblauw': '#cbe9fb',
         'ijsselheem-accentblauw': '#a1d9f7',
         'ijsselheem-olijfgroen': '#beb022',
+        'ijsselheem-oranje': '#d97706',
         'ijsselheem-pastelgroen': '#f5f4de',
         'ijsselheem-middenblauw': '#908ebc',
+        'ijsselheem-primair-groen': '#2d6a4f',
       },
       fontFamily: {
         'montserrat': ['Montserrat', 'Calibri', 'sans-serif'],

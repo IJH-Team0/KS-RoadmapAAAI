@@ -15,7 +15,7 @@ export type AppStatusDb =
 /** Sidebar en dropdown: label en volgorde. */
 export const APP_STATUS_OPTIONS: { value: AppStatusDb; label: string; order: number }[] = [
   { value: 'wensenlijst', label: '0. Wensenlijst', order: 0 },
-  { value: 'stories_maken', label: '1. User stories maken', order: 1 },
+  { value: 'stories_maken', label: '1. User stories of taken maken', order: 1 },
   { value: 'in_voorbereiding', label: '2. Sprintbaar', order: 2 },
   { value: 'in_ontwikkeling', label: '3. In ontwikkeling', order: 3 },
   { value: 'in_testfase', label: '4. Test', order: 4 },
@@ -24,7 +24,7 @@ export const APP_STATUS_OPTIONS: { value: AppStatusDb; label: string; order: num
 ]
 
 export function getStatusLabel(status: AppStatusDb): string {
-  if (status === 'stories_maken') return '1. User stories maken'
+  if (status === 'stories_maken') return '1. User stories of taken maken'
   return APP_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
 }
 
@@ -41,29 +41,8 @@ export const PLATFORM_OPTIONS = [
   'Webapp - Bolt/Cursor/Netlify',
 ] as const
 
-/** CSV: Prioriteit */
-export const PRIORITEIT_OPTIONS = ['Prio 1', 'Prio 2', 'Prio 3'] as const
-
 /** CSV: Complexiteit */
 export const COMPLEXITEIT_OPTIONS = ['Complex', 'Gemiddeld', 'Eenvoudig'] as const
-
-/** CSV: Impact */
-export const IMPACT_OPTIONS = [
-  '1. Organisatie',
-  '2. Domein',
-  '3. Locatie',
-  '4. Afdeling/Team/Cirkel',
-  '5. Persoon',
-] as const
-
-/** CSV: Doel */
-export const DOEL_OPTIONS = [
-  '1. Wetgeving',
-  '2. Technologie',
-  '3. Bedrijfskritisch',
-  '4. Strategisch',
-  '5. Procesverbetering',
-] as const
 
 /** Domein (vaste keuzelijst, 3 opties) */
 export const DOMEIN_OPTIONS = [
@@ -114,6 +93,37 @@ export const APP_ICON_OPTIONS: { value: string; label: string }[] = [
   { value: 'calendar', label: 'Kalender' },
   { value: 'clipboard-list', label: 'Lijst' },
   { value: 'link', label: 'Link' },
+  { value: 'heart', label: 'Hart' },
+  { value: 'building-2', label: 'Gebouw' },
+  { value: 'home', label: 'Home' },
+  { value: 'mail', label: 'Mail' },
+  { value: 'message-square', label: 'Bericht' },
+  { value: 'phone', label: 'Telefoon' },
+  { value: 'image', label: 'Afbeelding' },
+  { value: 'book-open', label: 'Boek' },
+  { value: 'graduation-cap', label: 'Opleiding' },
+  { value: 'shield', label: 'Schild' },
+  { value: 'lock', label: 'Slot' },
+  { value: 'key', label: 'Sleutel' },
+  { value: 'bell', label: 'Bel' },
+  { value: 'star', label: 'Ster' },
+  { value: 'flag', label: 'Vlag' },
+  { value: 'tag', label: 'Tag' },
+  { value: 'folder', label: 'Map' },
+  { value: 'database', label: 'Database' },
+  { value: 'server', label: 'Server' },
+  { value: 'wifi', label: 'Wifi' },
+  { value: 'cloud', label: 'Cloud' },
+  { value: 'briefcase', label: 'Koffer' },
+  { value: 'stethoscope', label: 'Stethoscoop' },
+  { value: 'activity', label: 'Activiteit' },
+  { value: 'pill', label: 'Medicijn' },
+  { value: 'heart-handshake', label: 'Zorg' },
+  { value: 'clipboard-check', label: 'Checklist' },
+  { value: 'calendar-check', label: 'Afspraak' },
+  { value: 'file-check', label: 'Document OK' },
+  { value: 'search', label: 'Zoeken' },
+  { value: 'lightbulb', label: 'Idee' },
 ]
 
 /** App: velden uit CSV + prioritering */
@@ -137,11 +147,8 @@ export interface App {
   icon_key: string | null
   handleiding_aanwezig: boolean | null
   sparse: boolean | null
-  prioriteit: string | null
   complexiteit: string | null
   domein: string | null
-  impact: string | null
-  doel: string | null
   /* Prioritering intake */
   probleemomschrijving: string | null
   proces: string | null
@@ -161,6 +168,10 @@ export interface App {
   urenwinst_per_jaar: number | null
   werkbesparing_score: number | null
   prioriteitsscore: number | null
+  /** Beveiligingsclassificatie L0–L3 (ontwikkeling/governance) */
+  beveiligingsniveau: 'L0' | 'L1' | 'L2' | 'L3' | null
+  /** Pas true na afronden op tab Publicatie; apps in test/productie zijn dan zichtbaar voor gebruikers (ontbreekt vóór migratie 028) */
+  publicatie_afgerond?: boolean
 }
 
 export type AppUpdate = Partial<

@@ -1,7 +1,32 @@
 import type { BouwinspanningDb } from '@/types/app'
 
+/** Optionele config voor prioriteitsscore-formule (uit DB). Bij ontbreken worden vaste defaults gebruikt. */
+export interface PrioriteitsscoreFormulaConfig {
+  riskPenalty: number
+  bouwinspanningS: number
+  bouwinspanningM: number
+  bouwinspanningL: number
+  zorgimpactBonuses: Record<string, number>
+  /** Aftrek op prioriteitsscore wanneer Sparse (leverancier) bij de feature betrokken is. */
+  sparseBoetePunten: number
+}
+
+/** Default waarden wanneer geen config wordt meegegeven. */
+export const DEFAULT_PRIORITEITSSCORE_CONFIG: PrioriteitsscoreFormulaConfig = {
+  riskPenalty: 15,
+  bouwinspanningS: 30,
+  bouwinspanningM: 20,
+  bouwinspanningL: 10,
+  zorgimpactBonuses: {
+    'Compliance / wetgeving': 10,
+    'Cliëntveiligheid': 10,
+  },
+  sparseBoetePunten: 15,
+}
+
 /**
  * Urenwinst per jaar (formule uit UX-opzet).
+ * frequentie_per_week = aantal keren per week; minuten_per_medewerker_per_week = minuten per medewerker per keer (per handeling).
  * (frequentie_per_week * minuten_per_medewerker_per_week * aantal_medewerkers * 52) / 60
  */
 export function urenwinstPerJaar(
@@ -38,41 +63,55 @@ export function werkbesparingScore(
   return Math.min(100, Math.round(ratio * 100))
 }
 
-/**
- * Bouwinspanning: lagere inspanning = hogere bijdrage aan prioriteit.
- * S = 30, M = 20, L = 10 (placeholder).
- */
-function bouwinspanningScore(b: BouwinspanningDb | null | undefined): number {
+function bouwinspanningScoreWithConfig(
+  b: BouwinspanningDb | null | undefined,
+  config: PrioriteitsscoreFormulaConfig
+): number {
   if (b == null) return 0
   switch (b) {
     case 'S':
-      return 30
+      return config.bouwinspanningS
     case 'M':
-      return 20
+      return config.bouwinspanningM
     case 'L':
-      return 10
+      return config.bouwinspanningL
     default:
       return 0
   }
 }
 
+function zorgimpactTypeBonusWithConfig(
+  zorgimpactType: string | null | undefined,
+  zorgimpactBonuses: Record<string, number>
+): number {
+  if (!zorgimpactType || !zorgimpactType.trim()) return 0
+  const t = zorgimpactType.trim()
+  return zorgimpactBonuses[t] ?? 0
+}
+
 /**
- * Prioriteitsscore (placeholder): gewogen combinatie van zorgwaarde, urenwinst, bouwinspanning, risico.
+ * Prioriteitsscore: gewogen combinatie van zorgwaarde, urenwinst, bouwinspanning, risico, optioneel zorgimpact type en Sparse-boete.
  * Hoger = betere prioriteit. Gebruikt voor sortering overal.
- * Formule: zorgwaarde*20 + urenwinst-component (0-50) + bouwinspanning (10-30) - risico (15 indien ja).
+ * Formule: zorgwaarde*20 + urenwinst (0-50) + bouwinspanning - risico + bonus per zorgimpact type - sparseBoete indien sparseBetrokken.
+ * Als formulaConfig ontbreekt, worden DEFAULT_PRIORITEITSSCORE_CONFIG waarden gebruikt.
  */
 export function prioriteitsscore(
   zorgwaarde: number | null | undefined,
   urenwinstPerJaarValue: number | null | undefined,
   bouwinspanning: BouwinspanningDb | null | undefined,
-  risico: boolean | null | undefined
+  risico: boolean | null | undefined,
+  zorgimpactType?: string | null,
+  formulaConfig?: PrioriteitsscoreFormulaConfig | null,
+  sparseBetrokken?: boolean | null
 ): number | null {
+  const config = formulaConfig ?? DEFAULT_PRIORITEITSSCORE_CONFIG
   const z = zorgwaarde != null && zorgwaarde >= 1 && zorgwaarde <= 5 ? zorgwaarde : 0
   const u = urenwinstPerJaarValue != null && urenwinstPerJaarValue >= 0 ? urenwinstPerJaarValue : 0
-  // urenwinst-component: cap bij 500 uur -> 50 punten
   const uScore = Math.min(50, Math.round(u / 10))
-  const bScore = bouwinspanningScore(bouwinspanning)
-  const rPenalty = risico === true ? 15 : 0
-  const score = z * 20 + uScore + bScore - rPenalty
+  const bScore = bouwinspanningScoreWithConfig(bouwinspanning, config)
+  const rPenalty = risico === true ? config.riskPenalty : 0
+  const typeBonus = zorgimpactTypeBonusWithConfig(zorgimpactType, config.zorgimpactBonuses)
+  const sparsePenalty = sparseBetrokken === true ? config.sparseBoetePunten : 0
+  const score = z * 20 + uScore + bScore - rPenalty + typeBonus - sparsePenalty
   return Math.max(0, Math.round(score * 10) / 10)
 }

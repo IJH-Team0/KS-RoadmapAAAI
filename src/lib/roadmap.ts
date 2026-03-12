@@ -46,7 +46,6 @@ export async function createFeature(
       app_id: appId,
       naam: payload.naam,
       beschrijving: payload.beschrijving ?? null,
-      prioriteit: payload.prioriteit ?? null,
       status: payload.status ?? 'gepland',
     })
     .select()
@@ -105,7 +104,7 @@ export async function fetchFeaturesForBacklog(
 ): Promise<BacklogFeatureRow[]> {
   let appQuery = supabase
     .from('apps')
-    .select('id, naam, domein, status, urenwinst_per_jaar, zorgimpact_type, platform, aanspreekpunt_intern')
+    .select('id, naam, domein, status, urenwinst_per_jaar, zorgimpact_type, platform, aanspreekpunt_intern, beveiligingsniveau')
     .neq('status', 'afgewezen')
   if (filters?.domein) appQuery = appQuery.eq('domein', filters.domein)
   if (filters?.status) appQuery = appQuery.eq('status', filters.status)
@@ -129,6 +128,7 @@ export async function fetchFeaturesForBacklog(
     zorgimpact_type: string | null
     platform: string | null
     aanspreekpunt_intern: string | null
+    beveiligingsniveau: 'L0' | 'L1' | 'L2' | 'L3' | null
   }
   const appIds = (appData as AppRow[]).map((a) => a.id)
   const appMap = new Map(
@@ -142,6 +142,7 @@ export async function fetchFeaturesForBacklog(
         zorgimpact_type: a.zorgimpact_type ?? null,
         platform: a.platform ?? null,
         aanspreekpunt_intern: a.aanspreekpunt_intern ?? null,
+        beveiligingsniveau: a.beveiligingsniveau ?? null,
       },
     ])
   )
@@ -176,6 +177,7 @@ export async function fetchFeaturesForBacklog(
       app_user_story_count: storyCountByApp.get((f as Feature).app_id) ?? 0,
       app_platform: app?.platform ?? null,
       app_aanspreekpunt_intern: app?.aanspreekpunt_intern ?? null,
+      app_beveiligingsniveau: app?.beveiligingsniveau ?? null,
     }
   })
   const excludeLater = options?.excludeInDevTestProd && !options?.includeAllPhases

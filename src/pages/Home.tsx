@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '@/contexts/AuthContext'
 import { fetchAppsWensenlijstOrInOntwikkeling } from '@/lib/apps'
 import type { App } from '@/types/app'
+import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 import { cn } from '@/lib/utils'
 
 export function Home() {
@@ -20,8 +21,8 @@ export function Home() {
   const inOntwikkeling = apps.filter((a) => a.status === 'in_ontwikkeling')
 
   return (
-    <div className="min-h-screen bg-ijsselheem-lichtblauw">
-      <header className="border-b border-ijsselheem-accentblauw/50 bg-white px-4 py-3 flex items-center justify-between">
+    <div className="min-h-full bg-ijsselheem-pastelgroen">
+      <header className="border-b border-ijsselheem-olijfgroen/30 bg-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <h1 className="text-lg font-bold text-ijsselheem-donkerblauw">Roadmap AAAI</h1>
           <nav className="flex gap-4">
@@ -74,12 +75,12 @@ export function Home() {
                         className={cn(
                           'block rounded-[20px] border border-ijsselheem-accentblauw/30 bg-white p-3',
                           'hover:border-ijsselheem-accentblauw hover:shadow transition',
-                          'border-l-4 border-l-ijsselheem-lichtblauw'
+                          'border-l-4 border-l-ijsselheem-olijfgroen'
                         )}
                       >
                         <span className="font-semibold text-ijsselheem-donkerblauw">{app.naam}</span>
-                        <div className="mt-1 flex flex-wrap gap-x-3 text-sm text-ijsselheem-donkerblauw">
-                          {app.prioriteit && <span>{app.prioriteit}</span>}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ijsselheem-donkerblauw">
+                          <BeveiligingsniveauBadge level={app.beveiligingsniveau} shortLabel />
                           {app.platform && <span>{app.platform}</span>}
                           {app.complexiteit && <span>{app.complexiteit}</span>}
                         </div>
@@ -106,8 +107,8 @@ export function Home() {
                         )}
                       >
                         <span className="font-semibold text-ijsselheem-donkerblauw">{app.naam}</span>
-                        <div className="mt-1 flex flex-wrap gap-x-3 text-sm text-ijsselheem-donkerblauw">
-                          {app.prioriteit && <span>{app.prioriteit}</span>}
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ijsselheem-donkerblauw">
+                          <BeveiligingsniveauBadge level={app.beveiligingsniveau} shortLabel />
                           {app.platform && <span>{app.platform}</span>}
                           {app.complexiteit && <span>{app.complexiteit}</span>}
                         </div>

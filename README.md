@@ -19,6 +19,8 @@ npm install
 3. **Gebruikers aanmaken:**
    - Maak gebruikers aan in Supabase Auth met de standaard wachtwoorden
    - **Zie [STANDARD_PASSWORDS.md](STANDARD_PASSWORDS.md) voor de standaard wachtwoorden per rol**
+   - **Tijdelijk inloggen als gebruiker (beperkte view):** zie [docs/auth.md](docs/auth.md) voor een testaccount (bijv. e-mail `gebruiker@example.com` / wachtwoord `gebruiker`) en rol `gebruiker` in `user_profiles`.
+   - **Microsoft/Entra (later):** zie [docs/auth.md](docs/auth.md) voor voorbereiding op inloggen met Microsoft-account.
 
 4. Database migrations uitvoeren:
    - Open je Supabase project dashboard

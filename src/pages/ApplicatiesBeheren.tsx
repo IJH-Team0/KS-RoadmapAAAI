@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
-import { fetchAllApps } from '@/lib/apps'
+import { fetchAllApps, deleteApp } from '@/lib/apps'
 import type { App } from '@/types/app'
 import { getStatusLabel } from '@/types/app'
 import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
@@ -10,6 +10,8 @@ export function ApplicatiesBeheren() {
   const [apps, setApps] = useState<App[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const filteredApps = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
@@ -31,6 +33,20 @@ export function ApplicatiesBeheren() {
     }
   }, [])
 
+  async function handleDelete(app: App) {
+    if (!window.confirm(`Applicatie "${app.naam}" definitief verwijderen? Dit verwijdert ook alle features en user stories van deze app.`)) return
+    setError(null)
+    setDeletingId(app.id)
+    try {
+      await deleteApp(app.id)
+      setApps((prev) => prev.filter((a) => a.id !== app.id))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Verwijderen mislukt')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">
@@ -40,6 +56,7 @@ export function ApplicatiesBeheren() {
         Overzicht van alle applicaties. Klik op <strong>Beheren</strong> om basisinfo (URL, uitleg, icoon), context, features en user stories of taken van een app te bekijken en aan te passen.
       </p>
 
+      {error && <p className="text-red-600 text-sm">{error}</p>}
       {loading ? (
         <p className="text-ijsselheem-donkerblauw">Laden…</p>
       ) : apps.length === 0 ? (
@@ -91,15 +108,25 @@ export function ApplicatiesBeheren() {
                       {app.domein ?? '—'}
                     </td>
                     <td className="p-3">
-                      <Link
-                        to={`/backlog/${app.id}`}
-                        className={cn(
-                          'inline-block rounded-ijsselheem-button px-3 py-1.5 text-sm font-medium',
-                          'bg-ijsselheem-donkerblauw text-white hover:opacity-90'
-                        )}
-                      >
-                        Beheren
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link
+                          to={`/backlog/${app.id}`}
+                          className={cn(
+                            'inline-block rounded-ijsselheem-button px-3 py-1.5 text-sm font-medium',
+                            'bg-ijsselheem-donkerblauw text-white hover:opacity-90'
+                          )}
+                        >
+                          Beheren
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(app)}
+                          disabled={deletingId === app.id}
+                          className="text-sm text-red-600 hover:underline disabled:opacity-50"
+                        >
+                          {deletingId === app.id ? 'Verwijderen…' : 'Verwijderen'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

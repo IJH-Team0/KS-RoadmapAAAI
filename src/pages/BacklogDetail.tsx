@@ -1,6 +1,6 @@
 import { useState, useEffect, Fragment } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { fetchAppById, updateApp } from '@/lib/apps'
+import { fetchAppById, updateApp, deleteApp } from '@/lib/apps'
 import {
   fetchFeatureById,
   updateFeature,
@@ -1082,6 +1082,28 @@ export function BacklogDetail() {
           )}
         </section>
         )}
+        <section className="rounded-xl border border-red-200 bg-red-50/50 p-4">
+          <h3 className="text-sm font-semibold text-red-800 mb-2">Applicatie verwijderen</h3>
+          <p className="text-xs text-red-700/90 mb-3">
+            Verwijder deze applicatie definitief. Alle gekoppelde features en user stories worden ook verwijderd. Deze actie kan niet ongedaan worden gemaakt.
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              if (!app || !window.confirm(`Applicatie "${app.naam}" definitief verwijderen? Dit verwijdert ook alle features en user stories.`)) return
+              setError(null)
+              try {
+                await deleteApp(app.id)
+                navigate('/applicaties-beheren')
+              } catch (e) {
+                setError(e instanceof Error ? e.message : 'Verwijderen mislukt')
+              }
+            }}
+            className="rounded-lg border border-red-300 bg-red-100 px-3 py-1.5 text-sm font-medium text-red-800 hover:bg-red-200"
+          >
+            Applicatie verwijderen
+          </button>
+        </section>
       </div>
     )
   }

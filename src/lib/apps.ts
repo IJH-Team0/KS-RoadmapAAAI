@@ -91,6 +91,12 @@ export async function updateApp(id: string, update: AppUpdate): Promise<App> {
   return data as App
 }
 
+/** Applicatie verwijderen (alleen admin via RLS). Verwijdert ook gekoppelde features, user stories, enz. */
+export async function deleteApp(id: string): Promise<void> {
+  const { error } = await supabase.from('apps').delete().eq('id', id)
+  if (error) throw error
+}
+
 /** Count of apps per status for sidebar badges */
 export async function fetchStatusCounts(): Promise<Record<AppStatusDb, number>> {
   const { data, error } = await supabase.from('apps').select('status')

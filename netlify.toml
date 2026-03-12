@@ -1,0 +1,11 @@
+# Netlify build config.
+# De Supabase anon key wordt door Vite in de JS-bundle ingebakken (VITE_SUPABASE_*).
+# Die key is bewust publiek; beveiliging loopt via RLS. De secret scanner flagt dit ten onrechte.
+# We sluiten de gebouwde assets uit van de scan zodat de deploy slaagt.
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[build.environment]
+  # Gebouwde JS bevat de Supabase anon key (bewust publiek). Scanner uitsluiten voor deze bestanden.
+  SECRETS_SCAN_OMIT_PATHS = "dist/assets/*.js"

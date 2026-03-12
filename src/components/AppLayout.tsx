@@ -8,7 +8,7 @@ import { fetchWensenBakIngediendCount } from '@/lib/wensenBak'
 
 // Sidebar: alleen schermen waar iets gedaan moet worden (acties, werkstromen)
 const sidebarProcessSteps: { to: string; label: string }[] = [
-  { to: '/nieuw/programma', label: 'Nieuw programma' },
+  { to: '/nieuw/programma', label: 'Nieuwe applicatie' },
   { to: '/nieuw/feature', label: 'Nieuwe feature' },
   { to: '/wensen', label: 'Ingediende wensen' },
   { to: '/backlog', label: 'Backlog' },

@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom'
 import { fetchAppsForBacklog } from '@/lib/apps'
 import { fetchStatusCounts } from '@/lib/apps'
 import type { App } from '@/types/app'
+import { useReferenceOptions } from '@/hooks/useReferenceOptions'
 import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
 export function Dashboard() {
+  const { options: domeinOptions } = useReferenceOptions('domein')
   const [apps, setApps] = useState<App[]>([])
   const [counts, setCounts] = useState<Record<string, number> | null>(null)
   const [loading, setLoading] = useState(true)
@@ -37,8 +39,13 @@ export function Dashboard() {
     { label: 'M', count: apps.filter((a) => a.bouwinspanning === 'M').length },
     { label: 'L', count: apps.filter((a) => a.bouwinspanning === 'L').length },
   ]
+  const domeinVerdeling = [
+    ...domeinOptions.map((d) => ({ label: d.label, count: apps.filter((a) => a.domein === d.value).length })),
+    { label: 'Geen domein', count: apps.filter((a) => a.domein == null || a.domein.trim() === '').length },
+  ]
   const maxZorg = Math.max(1, ...zorgwaardeVerdeling.map((x) => x.count))
   const maxBouw = Math.max(1, ...bouwVerdeling.map((x) => x.count))
+  const maxDomein = Math.max(1, ...domeinVerdeling.map((x) => x.count))
 
   if (loading) {
     return <p className="text-ijsselheem-donkerblauw">Laden…</p>
@@ -69,7 +76,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <section className="rounded-xl border border-ijsselheem-accentblauw/30 bg-white p-4">
           <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw mb-3">Verdeling zorgwaarde</h3>
           <div className="space-y-2">
@@ -100,6 +107,25 @@ export function Dashboard() {
                   />
                 </div>
                 <span className="text-sm text-ijsselheem-donkerblauw w-8">{count}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section className="rounded-xl border border-ijsselheem-accentblauw/30 bg-white p-4">
+          <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw mb-3">Verdeling domeinen</h3>
+          <div className="space-y-2">
+            {domeinVerdeling.map(({ label, count }) => (
+              <div key={label} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 text-sm font-medium text-ijsselheem-donkerblauw truncate" title={label}>
+                  {label}
+                </span>
+                <div className="flex-1 min-w-[4rem] h-6 bg-ijsselheem-lichtblauw rounded overflow-hidden">
+                  <div
+                    className="h-full bg-ijsselheem-olijfgroen/80 rounded"
+                    style={{ width: `${(count / maxDomein) * 100}%` }}
+                  />
+                </div>
+                <span className="text-sm text-ijsselheem-donkerblauw w-8 shrink-0">{count}</span>
               </div>
             ))}
           </div>

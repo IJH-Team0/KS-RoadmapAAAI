@@ -124,9 +124,9 @@ export function NieuweProgramma() {
           ← Terug
         </Link>
       </div>
-      <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">Nieuw programma</h2>
+      <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">Nieuwe applicatie</h2>
       <p className="text-sm text-ijsselheem-donkerblauw/80">
-        U maakt een nieuw programma aan; de feature &quot;Basisfunctionaliteit&quot; wordt automatisch aangemaakt.
+        U maakt een nieuwe applicatie aan; de feature &quot;Basisfunctionaliteit&quot; wordt automatisch aangemaakt.
       </p>
       {error && (
         <div className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</div>

@@ -10,8 +10,6 @@ import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
 type SortKey =
   | 'naam'
-  | 'domein'
-  | 'app_aanspreekpunt_intern'
   | 'urenwinst_per_jaar'
   | 'app_urenwinst_per_jaar'
   | 'app_zorgimpact_type'
@@ -212,8 +210,6 @@ export function Backlog() {
                           {(
                             [
                               { key: 'naam' as const, label: 'Programma · Feature' },
-                              { key: 'domein' as const, label: 'Domein' },
-                              { key: 'app_aanspreekpunt_intern' as const, label: 'Aanspreekpunt intern' },
                               { key: 'urenwinst_per_jaar' as const, label: 'Urenwinst/jaar' },
                               { key: 'app_urenwinst_per_jaar' as const, label: 'Urenwinst (aanvraag)' },
                               { key: 'app_zorgimpact_type' as const, label: 'Zorgimpact (aanvraag)' },
@@ -257,10 +253,6 @@ export function Backlog() {
                                 </Link>
                                 <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />
                               </div>
-                            </td>
-                            <td className="p-2 text-ijsselheem-donkerblauw">{row.app_domein ?? '—'}</td>
-                            <td className="p-2 text-ijsselheem-donkerblauw text-xs">
-                              {row.app_aanspreekpunt_intern ?? '—'}
                             </td>
                             <td className="p-2 text-ijsselheem-donkerblauw">
                               {row.feature.urenwinst_per_jaar != null

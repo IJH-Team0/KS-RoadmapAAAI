@@ -149,10 +149,16 @@ export function BacklogDetail() {
             setDraft({ ...f, ...intakeFromApp(a) })
           }
         })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : 'Laden mislukt')
+        })
         .finally(() => setLoading(false))
       return
     }
     if (legacyId) {
+      // #region agent log
+      fetch('http://127.0.0.1:7246/ingest/788b46d0-c7c1-4f39-873b-903ba7f3eb27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'BacklogDetail.tsx:data-load-legacyId',message:'legacyId branch start',data:{legacyId,hypothesisId:'H4'},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
       setLoading(true)
       fetchFeatureById(legacyId)
         .then((f) => {
@@ -171,6 +177,13 @@ export function BacklogDetail() {
             setApp(a)
             setFeature(null)
           })
+        })
+        .catch((e) => {
+          // #region agent log
+          const errMsg = e instanceof Error ? e.message : String(e)
+          fetch('http://127.0.0.1:7246/ingest/788b46d0-c7c1-4f39-873b-903ba7f3eb27',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'BacklogDetail.tsx:data-load-legacyId-catch',message:'legacyId load failed',data:{err:errMsg,hypothesisId:'H1'},timestamp:Date.now()})}).catch(()=>{});
+          // #endregion
+          setError(e instanceof Error ? e.message : 'Laden mislukt')
         })
         .finally(() => setLoading(false))
     }

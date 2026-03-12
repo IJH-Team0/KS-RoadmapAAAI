@@ -14,9 +14,9 @@ export function NieuweAanvraag() {
             to="/nieuw/programma"
             className="flex-1 rounded-xl border border-ijsselheem-accentblauw/30 p-4 transition hover:border-ijsselheem-donkerblauw hover:bg-ijsselheem-lichtblauw/50 block"
           >
-            <span className="block font-medium text-ijsselheem-donkerblauw">1a Nieuw programma</span>
+            <span className="block font-medium text-ijsselheem-donkerblauw">1a Nieuwe applicatie</span>
             <span className="block mt-1 text-sm text-ijsselheem-donkerblauw/80">
-              Een nieuw programma met als eerste feature de Basisfunctionaliteit.
+              Een nieuwe applicatie met als eerste feature de Basisfunctionaliteit.
             </span>
           </Link>
           <Link

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import type { App, AppStatusDb, AppUpdate } from '@/types/app'
 import {
@@ -22,6 +22,8 @@ import {
   getDerivedFeatureStatus,
   getFeatureStatusLabel,
 } from '@/types/roadmap'
+import { BasisfunctionaliteitNieuweAppHint } from '@/components/BasisfunctionaliteitNieuweAppHint'
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard'
 
 export type AppDetailShowOnly = 'algemene' | 'features' | 'all'
 
@@ -39,6 +41,47 @@ function hasValue(v: string | null | undefined): v is string {
 function hasDateValue(v: string | null | undefined): boolean {
   return v != null && String(v).trim() !== ''
 }
+
+function normalizeDirtyValue(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value.trim()
+  return String(value)
+}
+
+const APP_EDIT_DIRTY_KEYS = [
+  'naam',
+  'status',
+  'doel_app',
+  'eigenaar',
+  'aanspreekpunt_proces',
+  'aanspreekpunt_intern',
+  'ontwikkeld_door',
+  'datum_oplevering',
+  'platform',
+  'documentatie_url',
+  'url_test',
+  'url_productie',
+  'icon_key',
+  'handleiding_aanwezig',
+  'sparse',
+  'complexiteit',
+  'domein',
+  'probleemomschrijving',
+  'proces',
+  'frequentie_per_week',
+  'minuten_per_medewerker_per_week',
+  'aantal_medewerkers',
+  'zorgimpact_type',
+  'zorgwaarde',
+  'bouwinspanning',
+  'risico',
+  'beoordeling_toelichting',
+  'concept',
+  'urenwinst_per_jaar',
+  'werkbesparing_score',
+  'prioriteitsscore',
+  'beveiligingsniveau',
+] as const
 
 export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all' }: AppDetailProps) {
   const { effectiveRole } = useAuth()
@@ -66,6 +109,25 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
   })
   const [errorFeature, setErrorFeature] = useState<string | null>(null)
   const [savingFeature, setSavingFeature] = useState(false)
+
+  const isDirtyApp = useMemo(() => {
+    return APP_EDIT_DIRTY_KEYS.some((key) => {
+      return (
+        normalizeDirtyValue(app[key]) !== normalizeDirtyValue(initialApp[key])
+      )
+    })
+  }, [app, initialApp])
+
+  const isDirtyFeatureForm =
+    editingFeatureId !== null ||
+    showAddFeature ||
+    addFeatureForm.naam.trim() !== '' ||
+    (addFeatureForm.beschrijving?.trim() ?? '') !== ''
+
+  const hasUnsavedChanges =
+    editMode && !saving && !savingFeature && (isDirtyApp || isDirtyFeatureForm)
+
+  useUnsavedChangesGuard(hasUnsavedChanges)
 
   useEffect(() => {
     setApp(initialApp)
@@ -191,6 +253,18 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
       beveiligingsniveau: app.beveiligingsniveau ?? null,
     }
     try {
+      if (app.status !== initialApp.status) {
+        let basisFeatureId = features.find((f) => f.naam === BASISFEATURE_NAAM)?.id
+        if (!basisFeatureId) {
+          const list = await fetchFeaturesByAppId(app.id)
+          basisFeatureId = list.find((f) => f.naam === BASISFEATURE_NAAM)?.id
+        }
+        if (!basisFeatureId) {
+          throw new Error('Basisfunctionaliteit-feature niet gevonden; status kan niet worden opgeslagen.')
+        }
+        await updateFeature(basisFeatureId, { planning_status: app.status })
+        refetchFeatures()
+      }
       const updated = await updateApp(app.id, update)
       setApp(updated)
       setEditMode(false)
@@ -203,6 +277,14 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
   }
 
   const handleCancel = () => {
+    if (
+      hasUnsavedChanges &&
+      !window.confirm(
+        'U heeft niet-opgeslagen wijzigingen. Weet u zeker dat u deze pagina wilt verlaten?'
+      )
+    ) {
+      return
+    }
     setApp(initialApp)
     setEditMode(false)
     setError(null)
@@ -778,12 +860,8 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
                     <div>
                       <h4 className="text-base font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/20 pb-2">
                         {feature.naam}
-                        {feature.naam === BASISFEATURE_NAAM && (
-                          <span className="ml-1 text-xs font-normal text-ijsselheem-donkerblauw/70">
-                            (minimaal nodig)
-                          </span>
-                        )}
                       </h4>
+                      <BasisfunctionaliteitNieuweAppHint featureNaam={feature.naam} variant="banner" className="mt-3" />
                       <div className="mt-2 flex flex-wrap items-center gap-2">
                         <span
                           className="rounded-md bg-ijsselheem-lichtblauw/70 px-2 py-0.5 text-xs font-medium text-ijsselheem-donkerblauw"

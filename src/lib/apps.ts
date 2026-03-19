@@ -83,6 +83,8 @@ export async function createApp(payload: {
   probleemomschrijving?: string | null
   domein?: string | null
   proces?: string | null
+  eigenaar?: string | null
+  aanspreekpunt_proces?: string | null
   frequentie_per_week?: number | null
   minuten_per_medewerker_per_week?: number | null
   aantal_medewerkers?: number | null
@@ -101,6 +103,8 @@ export async function createApp(payload: {
       probleemomschrijving: payload.probleemomschrijving ?? null,
       domein: payload.domein ?? null,
       proces: payload.proces ?? null,
+      eigenaar: payload.eigenaar ?? null,
+      aanspreekpunt_proces: payload.aanspreekpunt_proces ?? null,
       frequentie_per_week: payload.frequentie_per_week ?? null,
       minuten_per_medewerker_per_week: payload.minuten_per_medewerker_per_week ?? null,
       aantal_medewerkers: payload.aantal_medewerkers ?? null,

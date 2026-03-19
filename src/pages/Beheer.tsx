@@ -28,7 +28,7 @@ interface ZorgimpactRow {
 }
 
 const KEUZELIJST_CATEGORIEEN: { key: string; label: string; enumOnly?: boolean }[] = [
-  { key: 'app_status', label: 'Status programma', enumOnly: true },
+  { key: 'app_status', label: 'Status applicatie', enumOnly: true },
   { key: 'domein', label: 'Domein' },
   { key: 'platform', label: 'Platform' },
   { key: 'complexiteit', label: 'Complexiteit' },

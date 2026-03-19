@@ -50,7 +50,7 @@ export function StoriesMaken() {
         <>
           <input
             type="search"
-            placeholder="Zoeken op programma, feature, domein, aanspreekpunt..."
+            placeholder="Zoeken op applicatie, feature, domein, aanspreekpunt..."
             value={zoek}
             onChange={(e) => setZoek(e.target.value)}
             className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-1.5 text-sm w-56"
@@ -64,13 +64,13 @@ export function StoriesMaken() {
                   <thead>
                     <tr className="bg-ijsselheem-lichtblauw/50 text-left">
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
-                        Programma · Feature
+                        Applicatie · Feature
                       </th>
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
                         Domein
                       </th>
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
-                        Aanspreekpunt intern
+                        Productowner
                       </th>
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
                         Urenwinst (aanvraag)
@@ -137,3 +137,4 @@ export function StoriesMaken() {
     </div>
   )
 }
+

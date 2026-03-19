@@ -22,6 +22,8 @@ export function NieuweProgramma() {
     minuten_per_medewerker_per_week: '' as string,
     aantal_medewerkers: '' as string,
     zorgimpact_type: '',
+    eigenaar: '',
+    aanspreekpunt_proces: '',
   })
   const [beveiliging, setBeveiliging] = useState({
     clientgegevens: false,
@@ -50,6 +52,8 @@ export function NieuweProgramma() {
         probleemomschrijving: form.probleemomschrijving.trim() || null,
         domein: form.domein || null,
         proces: form.proces.trim() || null,
+        eigenaar: form.eigenaar.trim() || null,
+        aanspreekpunt_proces: form.aanspreekpunt_proces.trim() || null,
         frequentie_per_week: freq ?? null,
         minuten_per_medewerker_per_week: min ?? null,
         aantal_medewerkers: med ?? null,
@@ -81,6 +85,8 @@ export function NieuweProgramma() {
         probleemomschrijving: form.probleemomschrijving.trim() || null,
         domein: form.domein || null,
         proces: form.proces.trim() || null,
+        eigenaar: form.eigenaar.trim() || null,
+        aanspreekpunt_proces: form.aanspreekpunt_proces.trim() || null,
         frequentie_per_week: freq ?? null,
         minuten_per_medewerker_per_week: min ?? null,
         aantal_medewerkers: med ?? null,
@@ -171,6 +177,30 @@ export function NieuweProgramma() {
               type="text"
               value={form.proces}
               onChange={(e) => setForm((f) => ({ ...f, proces: e.target.value }))}
+              className="w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-ijsselheem-accentblauw/30 bg-white p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw border-b border-ijsselheem-accentblauw/30 pb-2">Contact</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-ijsselheem-donkerblauw mb-1">Eigenaar</label>
+            <input
+              type="text"
+              value={form.eigenaar}
+              onChange={(e) => setForm((f) => ({ ...f, eigenaar: e.target.value }))}
+              className="w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-ijsselheem-donkerblauw mb-1">Aanspreekpunt proces</label>
+            <input
+              type="text"
+              value={form.aanspreekpunt_proces}
+              onChange={(e) => setForm((f) => ({ ...f, aanspreekpunt_proces: e.target.value }))}
               className="w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
             />
           </div>

@@ -2,18 +2,21 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { urenwinstPerJaar } from '@/lib/prioritering'
 import { bepaalBeveiligingsniveau, getBeveiligingsniveauLabel } from '@/lib/beveiligingsniveau'
+import type { App } from '@/types/app'
 import { fetchAppsForBacklog, updateApp } from '@/lib/apps'
 import { createFeature, updateFeature } from '@/lib/roadmap'
 import { useReferenceOptions } from '@/hooks/useReferenceOptions'
+import { ProgrammaZoeker } from '@/components/ProgrammaZoeker'
 import { cn } from '@/lib/utils'
 
 export function NieuweFeature() {
   const navigate = useNavigate()
   const { options: zorgimpactTypeOptions } = useReferenceOptions('zorgimpact_type')
+  const { options: domeinOptions } = useReferenceOptions('domein')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [successFeatureId, setSuccessFeatureId] = useState<string | null>(null)
-  const [appOptions, setAppOptions] = useState<{ id: string; naam: string }[]>([])
+  const [apps, setApps] = useState<App[]>([])
   const [featureForm, setFeatureForm] = useState({
     appId: '',
     featureNaam: '',
@@ -31,8 +34,8 @@ export function NieuweFeature() {
 
   useEffect(() => {
     fetchAppsForBacklog()
-      .then((apps) => setAppOptions(apps.map((a) => ({ id: a.id, naam: a.naam }))))
-      .catch(() => setAppOptions([]))
+      .then(setApps)
+      .catch(() => setApps([]))
   }, [])
 
   const featureFreq = featureForm.frequentie_per_week ? Number(featureForm.frequentie_per_week) : null
@@ -43,7 +46,7 @@ export function NieuweFeature() {
 
   const handleAddFeature = async () => {
     if (!featureForm.appId || !featureForm.featureNaam.trim()) {
-      setError('Kies een programma en vul een featurenaam in.')
+      setError('Kies een applicatie en vul een featurenaam in.')
       return
     }
     setError(null)
@@ -80,7 +83,7 @@ export function NieuweFeature() {
       <div className="max-w-xl space-y-4">
         <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">Feature toegevoegd</h2>
         <p className="text-ijsselheem-donkerblauw">
-          De feature is toegevoegd aan het programma. U kunt deze nu beoordelen op de backlog.
+          De feature is toegevoegd aan de applicatie. U kunt deze nu beoordelen op de backlog.
         </p>
         <button
           type="button"
@@ -109,7 +112,7 @@ export function NieuweFeature() {
       </div>
       <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">Nieuwe feature</h2>
       <p className="text-sm text-ijsselheem-donkerblauw/80">
-        Een extra feature toevoegen aan een bestaand programma; deze krijgt een eigen beoordeling op de backlog.
+        Een extra feature toevoegen aan een bestaande applicatie; deze krijgt een eigen beoordeling op de backlog.
       </p>
       {error && (
         <div className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</div>
@@ -118,17 +121,15 @@ export function NieuweFeature() {
       <section className="rounded-xl border border-ijsselheem-accentblauw/30 bg-white p-4 space-y-4">
         <h3 className="text-sm font-semibold text-ijsselheem-donkerblauw">Nieuwe feature</h3>
         <div>
-          <label className="block text-sm font-medium text-ijsselheem-donkerblauw mb-1">Programma *</label>
-          <select
+          <label className="block text-sm font-medium text-ijsselheem-donkerblauw mb-1">Applicatie *</label>
+          <ProgrammaZoeker
+            id="nieuwe-feature-programma"
+            apps={apps}
             value={featureForm.appId}
-            onChange={(e) => setFeatureForm((f) => ({ ...f, appId: e.target.value }))}
-            className="w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
-          >
-            <option value="">— Kies programma</option>
-            {appOptions.map((a) => (
-              <option key={a.id} value={a.id}>{a.naam}</option>
-            ))}
-          </select>
+            onChange={(appId) => setFeatureForm((f) => ({ ...f, appId }))}
+            domeinOptions={domeinOptions}
+            disabled={submitting}
+          />
         </div>
         <div>
           <label className="block text-sm font-medium text-ijsselheem-donkerblauw mb-1">Featurenaam *</label>
@@ -218,7 +219,7 @@ export function NieuweFeature() {
         <div className="border-t border-ijsselheem-accentblauw/30 pt-4">
           <h4 className="text-sm font-semibold text-ijsselheem-donkerblauw mb-3">Beveiligingsniveau</h4>
           <p className="text-sm text-ijsselheem-donkerblauw/80 mb-3">
-            Beantwoord de vragen zodat we het beveiligingsniveau van het programma kunnen bepalen.
+            Beantwoord de vragen zodat we het beveiligingsniveau van de applicatie kunnen bepalen.
           </p>
           <div className="space-y-3">
             <div>

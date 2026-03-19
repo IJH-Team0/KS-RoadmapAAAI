@@ -43,7 +43,7 @@ export function Beoordelen() {
       <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">Beoordelen</h2>
       <p className="text-sm text-ijsselheem-donkerblauw/80">
         Features zonder zorgwaarde of bouwinspanning. Klik om te beoordelen. De prioriteitsscore
-        staat op de feature; na invullen kun je het programma op het werkbord (Planning) naar
+        staat op de feature; na invullen kun je de applicatie op het werkbord (Planning) naar
         Oppakken zetten.
       </p>
       {rows.length === 0 ? (
@@ -52,7 +52,7 @@ export function Beoordelen() {
         <>
           <input
             type="search"
-            placeholder="Zoeken op programma, feature, domein, aanspreekpunt..."
+            placeholder="Zoeken op applicatie, feature, domein, aanspreekpunt..."
             value={zoek}
             onChange={(e) => setZoek(e.target.value)}
             className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-1.5 text-sm w-56"
@@ -66,13 +66,13 @@ export function Beoordelen() {
                   <thead>
                     <tr className="bg-ijsselheem-lichtblauw/50 text-left">
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
-                        Programma · Feature
+                        Applicatie · Feature
                       </th>
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
                         Domein
                       </th>
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
-                        Aanspreekpunt intern
+                        Productowner
                       </th>
                       <th className="p-2 whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
                         Urenwinst (aanvraag)
@@ -125,3 +125,4 @@ export function Beoordelen() {
     </div>
   )
 }
+

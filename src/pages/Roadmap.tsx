@@ -5,8 +5,9 @@ import { ClipboardList, Puzzle, Wrench, FlaskConical, type LucideIcon } from 'lu
 import { fetchFeaturesForBacklog } from '@/lib/roadmap'
 import type { BacklogFeatureRow } from '@/types/roadmap'
 import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
+import { BasisfunctionaliteitNieuweAppHint } from '@/components/BasisfunctionaliteitNieuweAppHint'
 import type { AppStatusDb } from '@/types/app'
-import { getStatusLabel } from '@/types/app'
+import { getStatusLabel, BASISFEATURE_NAAM } from '@/types/app'
 import { cn } from '@/lib/utils'
 
 const DESCRIPTION_PREVIEW_LENGTH = 120
@@ -45,8 +46,12 @@ function RoadmapUserCard({ row, icon: Icon }: { row: BacklogFeatureRow; icon: Lu
           <Icon className="h-5 w-5" strokeWidth={2} />
         </span>
         <div className="min-w-0 flex-1">
-          <h4 className="text-sm font-semibold text-ijsselheem-donkerblauw leading-snug">
-            {row.app_naam} · {row.feature.naam}
+          <h4 className="text-sm font-semibold text-ijsselheem-donkerblauw leading-snug flex flex-wrap items-center gap-x-1 gap-y-1">
+            <span>
+              {row.app_naam}
+              {row.feature.naam !== BASISFEATURE_NAAM && ` · ${row.feature.naam}`}
+            </span>
+            <BasisfunctionaliteitNieuweAppHint featureNaam={row.feature.naam} variant="compact" />
           </h4>
           {desc ? (
             <p className="mt-1.5 text-xs text-ijsselheem-donkerblauw/80 line-clamp-3 leading-relaxed">
@@ -224,7 +229,7 @@ export function Roadmap() {
                         <thead>
                           <tr className="bg-ijsselheem-lichtblauw/50">
                             <th className="w-[38%] min-w-[12rem] px-4 py-2.5 text-left align-middle whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
-                              Programma · Feature
+                              Applicatie · Feature
                             </th>
                             <th className="w-16 min-w-[3.5rem] px-4 py-2.5 text-center align-middle whitespace-nowrap font-semibold text-ijsselheem-donkerblauw" title="Prioriteitsscore">
                               Prio
@@ -239,7 +244,7 @@ export function Roadmap() {
                               Sparse
                             </th>
                             <th className="min-w-[10rem] px-4 py-2.5 text-left align-middle whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
-                              Aanspreekpunt intern
+                              Productowner
                             </th>
                             <th className="min-w-[10rem] px-4 py-2.5 text-left align-middle whitespace-nowrap font-semibold text-ijsselheem-donkerblauw">
                               Platform
@@ -258,12 +263,24 @@ export function Roadmap() {
                               )}
                             >
                               <td className="px-4 py-2.5 text-left align-middle">
-                                <Link
-                                  to={`/backlog/feature/${row.feature.id}`}
-                                  className="font-medium text-ijsselheem-donkerblauw hover:underline"
-                                >
-                                  {row.app_naam} · {row.feature.naam}
-                                </Link>
+                                <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+                                  <Link
+                                    to={`/backlog/feature/${row.feature.id}`}
+                                    className="font-medium text-ijsselheem-donkerblauw hover:underline min-w-0 inline-flex items-center gap-1.5"
+                                    aria-label={
+                                      row.feature.naam === BASISFEATURE_NAAM
+                                        ? `${row.app_naam}, eerste feature (Basisfunctionaliteit)`
+                                        : `${row.app_naam} · ${row.feature.naam}`
+                                    }
+                                  >
+                                    {row.app_naam}
+                                    {row.feature.naam !== BASISFEATURE_NAAM && ` · ${row.feature.naam}`}
+                                    <BasisfunctionaliteitNieuweAppHint
+                                      featureNaam={row.feature.naam}
+                                      variant="compact"
+                                    />
+                                  </Link>
+                                </div>
                               </td>
                               <td className="px-4 py-2.5 text-center align-middle text-ijsselheem-donkerblauw tabular-nums">
                                 {row.feature.prioriteitsscore != null
@@ -314,3 +331,4 @@ export function Roadmap() {
     </div>
   )
 }
+

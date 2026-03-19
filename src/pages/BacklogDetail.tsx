@@ -1,9 +1,8 @@
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, useMemo, Fragment } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchAppById, updateApp, deleteApp } from '@/lib/apps'
 import {
   fetchFeatureById,
-  fetchFeaturesByAppId,
   updateFeature,
   maybeSyncAppStatusToFeaturePlanningStatus,
 } from '@/lib/roadmap'
@@ -25,12 +24,12 @@ import type { Feature, FeatureUpdate } from '@/types/roadmap'
 import {
   getStatusLabel,
   getBouwinspanningLabel,
-  BASISFEATURE_NAAM,
 } from '@/types/app'
 import { useReferenceOptions } from '@/hooks/useReferenceOptions'
 import { getAppIcon } from '@/lib/appIcons'
 import { AppDetail } from '@/components/AppDetail'
 import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
+import { BasisfunctionaliteitNieuweAppHint } from '@/components/BasisfunctionaliteitNieuweAppHint'
 import { cn } from '@/lib/utils'
 import type { BeveiligingsniveauAntwoorden } from '@/lib/beveiligingsniveau'
 import {
@@ -48,6 +47,26 @@ import {
   getAcceptatiecriteriaPlaceholder,
   getStoryQualityChecklist,
 } from '@/lib/storyFocus'
+import { useUnsavedChangesGuard } from '@/hooks/useUnsavedChangesGuard'
+
+function normalizeDirtyValue(value: unknown): string {
+  if (value == null) return ''
+  if (typeof value === 'string') return value.trim()
+  return String(value)
+}
+
+const FEATURE_DIRTY_KEYS = [
+  'frequentie_per_week',
+  'minuten_per_medewerker_per_week',
+  'aantal_medewerkers',
+  'zorgimpact_type',
+  'zorgwaarde',
+  'bouwinspanning',
+  'sparse_betrokken',
+  'risico',
+  'beoordeling_toelichting',
+  'planning_status',
+] as const
 
 export function BacklogDetail() {
   const params = useParams<{ id?: string; featureId?: string }>()
@@ -76,6 +95,9 @@ export function BacklogDetail() {
   const [savingDocumentatie, setSavingDocumentatie] = useState(false)
   const [showAddStoryForm, setShowAddStoryForm] = useState(false)
   const [newLooseTaskInput, setNewLooseTaskInput] = useState('')
+  const [savedContactFields, setSavedContactFields] = useState<
+    { aanspreekpunt_intern: string | null; eigenaar: string | null; aanspreekpunt_proces: string | null } | undefined
+  >(undefined)
   const { config: prioriteitsscoreConfig } = usePrioriteitsscoreConfig()
   const { options: appStatusOptions } = useReferenceOptions('app_status')
   const { options: appIconOptions } = useReferenceOptions('app_icon')
@@ -91,6 +113,50 @@ export function BacklogDetail() {
   useEffect(() => {
     setBeveiliging(antwoordenFromLevel(app?.beveiligingsniveau))
   }, [app?.id, app?.beveiligingsniveau])
+
+  useEffect(() => {
+    if (!app?.id) {
+      setSavedContactFields(undefined)
+      return
+    }
+    setSavedContactFields({
+      aanspreekpunt_intern: app.aanspreekpunt_intern ?? null,
+      eigenaar: app.eigenaar ?? null,
+      aanspreekpunt_proces: app.aanspreekpunt_proces ?? null,
+    })
+  }, [app?.id])
+
+  const hasDraftChanges = useMemo(() => {
+    if (!feature) return false
+    return FEATURE_DIRTY_KEYS.some((key) => {
+      const draftValue =
+        draft[key] !== undefined ? draft[key] : feature[key]
+      return (
+        normalizeDirtyValue(draftValue) !== normalizeDirtyValue(feature[key])
+      )
+    })
+  }, [draft, feature])
+
+  const hasUnsavedStoryInput =
+    (showAddStoryForm &&
+      (addStoryForm.titel.trim() !== '' ||
+        (addStoryForm.beschrijving?.trim() ?? '') !== '' ||
+        (addStoryForm.acceptatiecriteria?.trim() ?? '') !== '' ||
+        newLooseTaskInput.trim() !== '')) ||
+    editingStoryId !== null
+
+  const hasUnsavedInlineAppInput =
+    savedContactFields !== undefined &&
+    ((app?.aanspreekpunt_intern ?? null) !== savedContactFields.aanspreekpunt_intern ||
+      (app?.eigenaar ?? null) !== savedContactFields.eigenaar ||
+      (app?.aanspreekpunt_proces ?? null) !== savedContactFields.aanspreekpunt_proces)
+
+  const hasUnsavedChanges =
+    !saving &&
+    !addingStory &&
+    (hasDraftChanges || hasUnsavedStoryInput || hasUnsavedInlineAppInput)
+
+  useUnsavedChangesGuard(hasUnsavedChanges)
 
   // Open Publicatie-tab wanneer ?tab=publicatie in de URL (bijv. vanaf Stap 8 op Planning)
   useEffect(() => {
@@ -348,6 +414,53 @@ export function BacklogDetail() {
       navigate('/backlog')
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Opslaan mislukt')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleResetBeoordeling = async () => {
+    if (!feature) return
+    const ok = window.confirm(
+      'Beoordeling en intake leegmaken voor deze feature? Dit verwijdert de ingevulde waarden.'
+    )
+    if (!ok) return
+    setError(null)
+    setSaving(true)
+    const resetUpdate: FeatureUpdate = {
+      zorgwaarde: null,
+      bouwinspanning: null,
+      risico: null,
+      beoordeling_toelichting: null,
+      prioriteitsscore: null,
+      frequentie_per_week: null,
+      minuten_per_medewerker_per_week: null,
+      aantal_medewerkers: null,
+      urenwinst_per_jaar: null,
+      zorgimpact_type: null,
+      werkbesparing_score: null,
+      sparse_betrokken: false,
+    }
+    try {
+      const updatedFeature = await updateFeature(feature.id, resetUpdate)
+      if (app?.id) {
+        const updatedApp = await updateApp(app.id, {
+          frequentie_per_week: null,
+          minuten_per_medewerker_per_week: null,
+          aantal_medewerkers: null,
+          zorgimpact_type: null,
+          urenwinst_per_jaar: null,
+        })
+        setApp(updatedApp)
+      }
+      setFeature(updatedFeature)
+      setDraft(updatedFeature)
+    } catch (e) {
+      const msg =
+        e && typeof e === 'object' && 'message' in e
+          ? String((e as { message?: unknown }).message)
+          : 'Reset mislukt'
+      setError(msg)
     } finally {
       setSaving(false)
     }
@@ -1198,6 +1311,8 @@ export function BacklogDetail() {
         <div className="rounded-xl bg-red-50 p-3 text-sm text-red-800">{error}</div>
       )}
 
+      <BasisfunctionaliteitNieuweAppHint featureNaam={feature.naam} variant="banner" />
+
       {view === 'compact' ? (
         /* Compact layout: Algemene info (read-only + Bewerken), 70/30 Beoordeling + Impactanalyse, User stories */
         <>
@@ -1221,7 +1336,7 @@ export function BacklogDetail() {
                   {app && (
                     <>
                       <div>
-                        <span className="text-xs text-ijsselheem-donkerblauw/70">Programma</span>
+                        <span className="text-xs text-ijsselheem-donkerblauw/70">Applicatie</span>
                         <p className="font-medium text-ijsselheem-donkerblauw">{app.naam}</p>
                       </div>
                       <div>
@@ -1229,19 +1344,22 @@ export function BacklogDetail() {
                         <p className="text-ijsselheem-donkerblauw">{app.domein ?? '—'}</p>
                       </div>
                       <div>
-                        <span className="text-xs text-ijsselheem-donkerblauw/70">Aanspreekpunt intern</span>
+                        <span className="text-xs text-ijsselheem-donkerblauw/70">Productowner</span>
                         <p className="text-ijsselheem-donkerblauw">{app.aanspreekpunt_intern ?? '—'}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-ijsselheem-donkerblauw/70">Aanvrager/Eigenaar</span>
+                        <p className="text-ijsselheem-donkerblauw">{app.eigenaar ?? '—'}</p>
+                      </div>
+                      <div>
+                        <span className="text-xs text-ijsselheem-donkerblauw/70">Aanspreekpunt proces</span>
+                        <p className="text-ijsselheem-donkerblauw">{app.aanspreekpunt_proces ?? '—'}</p>
                       </div>
                     </>
                   )}
                   <div>
                     <span className="text-xs text-ijsselheem-donkerblauw/70">Feature</span>
-                    <p className="font-medium text-ijsselheem-donkerblauw">
-                      {feature.naam}
-                      {feature.naam === BASISFEATURE_NAAM && (
-                        <span className="ml-1 font-normal text-ijsselheem-donkerblauw/70">(eerste app)</span>
-                      )}
-                    </p>
+                    <p className="font-medium text-ijsselheem-donkerblauw">{feature.naam}</p>
                   </div>
                   {app && (
                     <div>
@@ -1251,18 +1369,6 @@ export function BacklogDetail() {
                       </p>
                     </div>
                   )}
-                  <div>
-                    <span className="text-xs text-ijsselheem-donkerblauw/70">Sparse betrokken</span>
-                    <p className="mt-0.5">
-                      {sparseBetrokken ? (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-ijsselheem-lichtblauw/80 border border-ijsselheem-accentblauw/50 px-2 py-0.5 text-xs font-medium text-ijsselheem-donkerblauw">
-                          Sparse
-                        </span>
-                      ) : (
-                        <span className="text-ijsselheem-donkerblauw/50 text-xs">—</span>
-                      )}
-                    </p>
-                  </div>
                 </div>
                 {app &&
                   (app.frequentie_per_week != null ||
@@ -1299,29 +1405,78 @@ export function BacklogDetail() {
               <div className="mt-3 space-y-4">
                 <div className="flex flex-wrap items-center gap-4">
                   {app && (
-                    <div className="min-w-[12rem]">
-                      <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Status programma</label>
-                      <select
-                        value={app.status}
-                        onChange={async (e) => {
-                          const planningStatus = e.target.value as AppStatusDb
-                          try {
-                            const features = await fetchFeaturesByAppId(app.id)
-                            const basisFeature = features.find((f) => f.naam === BASISFEATURE_NAAM)
-                            if (basisFeature) {
-                              await updateFeature(basisFeature.id, { planning_status: planningStatus })
-                              const updatedApp = await fetchAppById(app.id)
-                              if (updatedApp) setApp(updatedApp)
-                            }
-                          } catch (_) {}
-                        }}
-                        className="mt-1 w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
-                      >
-                        {appStatusOptions.map((o) => (
-                          <option key={o.value} value={o.value}>{getStatusLabel(o.value as AppStatusDb)}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <>
+                      <div className="min-w-[12rem]">
+                        <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Productowner</label>
+                        <input
+                          type="text"
+                          value={app.aanspreekpunt_intern ?? ''}
+                          onChange={(e) =>
+                            setApp((a) => (a ? { ...a, aanspreekpunt_intern: e.target.value || null } : null))
+                          }
+                          onBlur={async () => {
+                            if (!app?.id) return
+                            try {
+                              const updated = await updateApp(app.id, { aanspreekpunt_intern: app.aanspreekpunt_intern ?? null })
+                              setApp(updated)
+                              setSavedContactFields((prev) => ({
+                                aanspreekpunt_intern: updated.aanspreekpunt_intern ?? null,
+                                eigenaar: prev?.eigenaar ?? updated.eigenaar ?? null,
+                                aanspreekpunt_proces: prev?.aanspreekpunt_proces ?? updated.aanspreekpunt_proces ?? null,
+                              }))
+                            } catch (_) {}
+                          }}
+                          placeholder="Naam of team"
+                          className="mt-1 w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-[12rem]">
+                        <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aanvrager/Eigenaar</label>
+                        <input
+                          type="text"
+                          value={app.eigenaar ?? ''}
+                          onChange={(e) => setApp((a) => (a ? { ...a, eigenaar: e.target.value || null } : null))}
+                          onBlur={async () => {
+                            if (!app?.id) return
+                            try {
+                              const updated = await updateApp(app.id, { eigenaar: app.eigenaar ?? null })
+                              setApp(updated)
+                              setSavedContactFields((prev) => ({
+                                aanspreekpunt_intern: prev?.aanspreekpunt_intern ?? updated.aanspreekpunt_intern ?? null,
+                                eigenaar: updated.eigenaar ?? null,
+                                aanspreekpunt_proces: prev?.aanspreekpunt_proces ?? updated.aanspreekpunt_proces ?? null,
+                              }))
+                            } catch (_) {}
+                          }}
+                          placeholder="Naam of team"
+                          className="mt-1 w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                      <div className="min-w-[12rem]">
+                        <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aanspreekpunt proces</label>
+                        <input
+                          type="text"
+                          value={app.aanspreekpunt_proces ?? ''}
+                          onChange={(e) =>
+                            setApp((a) => (a ? { ...a, aanspreekpunt_proces: e.target.value || null } : null))
+                          }
+                          onBlur={async () => {
+                            if (!app?.id) return
+                            try {
+                              const updated = await updateApp(app.id, { aanspreekpunt_proces: app.aanspreekpunt_proces ?? null })
+                              setApp(updated)
+                              setSavedContactFields((prev) => ({
+                                aanspreekpunt_intern: prev?.aanspreekpunt_intern ?? updated.aanspreekpunt_intern ?? null,
+                                eigenaar: prev?.eigenaar ?? updated.eigenaar ?? null,
+                                aanspreekpunt_proces: updated.aanspreekpunt_proces ?? null,
+                              }))
+                            } catch (_) {}
+                          }}
+                          placeholder="Naam of team"
+                          className="mt-1 w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
+                        />
+                      </div>
+                    </>
                   )}
                   <div className="min-w-[12rem]">
                     <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Status feature</label>
@@ -1342,43 +1497,6 @@ export function BacklogDetail() {
                         <option key={o.value} value={o.value}>{getStatusLabel(o.value as AppStatusDb)}</option>
                       ))}
                     </select>
-                  </div>
-                  <div className="min-w-[12rem]">
-                    <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Sparse betrokken</label>
-                    <div className="flex gap-2 mt-1">
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const updated = await updateFeature(feature.id, { sparse_betrokken: true })
-                            setFeature(updated)
-                            setDraft((d) => ({ ...d, sparse_betrokken: true }))
-                          } catch (_) {}
-                        }}
-                        className={cn(
-                          'rounded-lg border px-2 py-1 text-xs font-medium',
-                          sparseBetrokken ? 'border-ijsselheem-donkerblauw bg-ijsselheem-donkerblauw text-white' : 'border-ijsselheem-accentblauw/50 text-ijsselheem-donkerblauw hover:bg-ijsselheem-lichtblauw'
-                        )}
-                      >
-                        Ja
-                      </button>
-                      <button
-                        type="button"
-                        onClick={async () => {
-                          try {
-                            const updated = await updateFeature(feature.id, { sparse_betrokken: false })
-                            setFeature(updated)
-                            setDraft((d) => ({ ...d, sparse_betrokken: false }))
-                          } catch (_) {}
-                        }}
-                        className={cn(
-                          'rounded-lg border px-2 py-1 text-xs font-medium',
-                          !sparseBetrokken ? 'border-ijsselheem-donkerblauw bg-ijsselheem-donkerblauw text-white' : 'border-ijsselheem-accentblauw/50 text-ijsselheem-donkerblauw hover:bg-ijsselheem-lichtblauw'
-                        )}
-                      >
-                        Nee
-                      </button>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1952,6 +2070,14 @@ export function BacklogDetail() {
             <button type="button" onClick={handleSave} disabled={saving} className="rounded-ijsselheem-button bg-ijsselheem-donkerblauw px-4 py-2 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50">
               {saving ? 'Opslaan…' : 'Opslaan'}
             </button>
+            <button
+              type="button"
+              onClick={handleResetBeoordeling}
+              disabled={saving || !feature}
+              className="rounded-ijsselheem-button border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+            >
+              Reset beoordeling
+            </button>
             <button type="button" onClick={() => navigate('/backlog')} className="rounded-ijsselheem-button border border-ijsselheem-donkerblauw px-4 py-2 text-sm font-medium text-ijsselheem-donkerblauw hover:bg-ijsselheem-lichtblauw">
               Annuleren
             </button>
@@ -1966,7 +2092,7 @@ export function BacklogDetail() {
           {app && (
             <>
               <div>
-                <span className="text-xs font-medium text-ijsselheem-donkerblauw/70">Programma</span>
+                <span className="text-xs font-medium text-ijsselheem-donkerblauw/70">Applicatie</span>
                 <p className="text-sm font-medium text-ijsselheem-donkerblauw">{app.naam}</p>
               </div>
               <div>
@@ -1974,21 +2100,24 @@ export function BacklogDetail() {
                 <p className="text-sm text-ijsselheem-donkerblauw">{app.domein ?? '—'}</p>
               </div>
               <div>
-                <span className="text-xs font-medium text-ijsselheem-donkerblauw/70">Aanspreekpunt intern</span>
+                <span className="text-xs font-medium text-ijsselheem-donkerblauw/70">Productowner</span>
                 <p className="text-sm text-ijsselheem-donkerblauw">
                   {app?.aanspreekpunt_intern ?? '—'}
                 </p>
+              </div>
+              <div>
+                <span className="text-xs font-medium text-ijsselheem-donkerblauw/70">Aanvrager/Eigenaar</span>
+                <p className="text-sm text-ijsselheem-donkerblauw">{app?.eigenaar ?? '—'}</p>
+              </div>
+              <div>
+                <span className="text-xs font-medium text-ijsselheem-donkerblauw/70">Aanspreekpunt proces</span>
+                <p className="text-sm text-ijsselheem-donkerblauw">{app?.aanspreekpunt_proces ?? '—'}</p>
               </div>
             </>
           )}
           <div>
             <span className="text-xs font-medium text-ijsselheem-donkerblauw/70">Feature</span>
-            <p className="text-sm font-medium text-ijsselheem-donkerblauw">
-              {feature.naam}
-              {feature.naam === BASISFEATURE_NAAM && (
-                <span className="ml-1 text-ijsselheem-donkerblauw/70 font-normal">(eerste app)</span>
-              )}
-            </p>
+            <p className="text-sm font-medium text-ijsselheem-donkerblauw">{feature.naam}</p>
           </div>
         </div>
         {app && (
@@ -2122,7 +2251,7 @@ export function BacklogDetail() {
           </div>
           {app && (
             <div className="min-w-[12rem]">
-              <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aanspreekpunt intern</label>
+              <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Productowner</label>
               <input
                 type="text"
                 value={app.aanspreekpunt_intern ?? ''}
@@ -2132,6 +2261,59 @@ export function BacklogDetail() {
                   try {
                     const updated = await updateApp(app.id, { aanspreekpunt_intern: app.aanspreekpunt_intern ?? null })
                     setApp(updated)
+                    setSavedContactFields((prev) => ({
+                      aanspreekpunt_intern: updated.aanspreekpunt_intern ?? null,
+                      eigenaar: prev?.eigenaar ?? updated.eigenaar ?? null,
+                      aanspreekpunt_proces: prev?.aanspreekpunt_proces ?? updated.aanspreekpunt_proces ?? null,
+                    }))
+                  } catch (_) {}
+                }}
+                placeholder="Naam of team"
+                className="mt-1 w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
+              />
+            </div>
+          )}
+          {app && (
+            <div className="min-w-[12rem]">
+              <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aanvrager/Eigenaar</label>
+              <input
+                type="text"
+                value={app.eigenaar ?? ''}
+                onChange={(e) => setApp((a) => (a ? { ...a, eigenaar: e.target.value || null } : null))}
+                onBlur={async () => {
+                  if (!app?.id) return
+                  try {
+                    const updated = await updateApp(app.id, { eigenaar: app.eigenaar ?? null })
+                    setApp(updated)
+                    setSavedContactFields((prev) => ({
+                      aanspreekpunt_intern: prev?.aanspreekpunt_intern ?? updated.aanspreekpunt_intern ?? null,
+                      eigenaar: updated.eigenaar ?? null,
+                      aanspreekpunt_proces: prev?.aanspreekpunt_proces ?? updated.aanspreekpunt_proces ?? null,
+                    }))
+                  } catch (_) {}
+                }}
+                placeholder="Naam of team"
+                className="mt-1 w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"
+              />
+            </div>
+          )}
+          {app && (
+            <div className="min-w-[12rem]">
+              <label className="block text-sm font-medium text-ijsselheem-donkerblauw">Aanspreekpunt proces</label>
+              <input
+                type="text"
+                value={app.aanspreekpunt_proces ?? ''}
+                onChange={(e) => setApp((a) => (a ? { ...a, aanspreekpunt_proces: e.target.value || null } : null))}
+                onBlur={async () => {
+                  if (!app?.id) return
+                  try {
+                    const updated = await updateApp(app.id, { aanspreekpunt_proces: app.aanspreekpunt_proces ?? null })
+                    setApp(updated)
+                    setSavedContactFields((prev) => ({
+                      aanspreekpunt_intern: prev?.aanspreekpunt_intern ?? updated.aanspreekpunt_intern ?? null,
+                      eigenaar: prev?.eigenaar ?? updated.eigenaar ?? null,
+                      aanspreekpunt_proces: updated.aanspreekpunt_proces ?? null,
+                    }))
                   } catch (_) {}
                 }}
                 placeholder="Naam of team"
@@ -2925,6 +3107,14 @@ export function BacklogDetail() {
         </button>
         <button
           type="button"
+          onClick={handleResetBeoordeling}
+          disabled={saving || !feature}
+          className="rounded-ijsselheem-button border border-red-300 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+        >
+          Reset beoordeling
+        </button>
+        <button
+          type="button"
           onClick={() => navigate('/backlog')}
           className="rounded-ijsselheem-button border border-ijsselheem-donkerblauw px-4 py-2 text-sm font-medium text-ijsselheem-donkerblauw hover:bg-ijsselheem-lichtblauw"
         >
@@ -2936,3 +3126,4 @@ export function BacklogDetail() {
     </div>
   )
 }
+

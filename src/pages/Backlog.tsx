@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useSearchParams, Link } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchFeaturesForBacklog } from '@/lib/roadmap'
 import type { BacklogFeatureRow } from '@/types/roadmap'
-import type { AppStatusDb } from '@/types/app'
+import { type AppStatusDb, BASISFEATURE_NAAM } from '@/types/app'
 import { useReferenceOptions } from '@/hooks/useReferenceOptions'
 import { type BacklogFilters } from '@/lib/apps'
 import { cn } from '@/lib/utils'
 import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
+import { BasisfunctionaliteitNieuweAppHint } from '@/components/BasisfunctionaliteitNieuweAppHint'
 
 type SortKey =
   | 'app_naam'
@@ -38,6 +39,7 @@ const LEVEL_OPTIONS: { value: BacklogLevelFilter; label: string }[] = [
 
 export function Backlog() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const { options: domeinOptions } = useReferenceOptions('domein')
   const [rows, setRows] = useState<BacklogFeatureRow[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,8 +118,12 @@ export function Backlog() {
     }
     const ps = (r: BacklogFeatureRow) => r.feature.planning_status ?? 'wensenlijst'
     const count = (r: BacklogFeatureRow) => r.app_user_story_count ?? 0
-    // Sprintbaar: only features in sprint phases (same definition as Planning "Sprintbaar")
-    const sprintbaarMetStory = sortRows(list.filter((r) => SPRINT_PHASES.includes(ps(r) as AppStatusDb)))
+    // Sprintbaar met stories/taken:
+    // - stories_maken met minimaal 1 user story/taken
+    // - in_voorbereiding (altijd)
+    const sprintbaarMetStory = sortRows(
+      list.filter((r) => (ps(r) === 'stories_maken' && count(r) > 0) || ps(r) === 'in_voorbereiding')
+    )
     const beoordeeldGeenStory = sortRows(
       list.filter((r) => ps(r) === 'stories_maken' && count(r) === 0)
     )
@@ -246,22 +252,41 @@ export function Backlog() {
                           <tr
                             key={row.feature.id}
                             className={cn(
-                              'border-t border-ijsselheem-accentblauw/20',
+                              'border-t border-ijsselheem-accentblauw/20 cursor-pointer hover:bg-ijsselheem-lichtblauw/30',
                               row.feature.zorgwaarde === 4 || row.feature.zorgwaarde === 5
                                 ? 'bg-ijsselheem-pastelgroen/30'
                                 : ''
                             )}
+                            role="link"
+                            tabIndex={0}
+                            aria-label={
+                              row.feature.naam === BASISFEATURE_NAAM
+                                ? `Beoordelen: ${row.app_naam}, eerste feature (Basisfunctionaliteit)`
+                                : `Beoordelen: ${row.feature.naam}`
+                            }
+                            onClick={() => navigate(`/backlog/feature/${row.feature.id}`)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault()
+                                navigate(`/backlog/feature/${row.feature.id}`)
+                              }
+                            }}
                           >
                             <td className="p-2 text-ijsselheem-donkerblauw">
                               {row.app_naam}
                             </td>
                             <td className="p-2">
-                              <Link
-                                to={`/backlog/feature/${row.feature.id}`}
-                                className="font-medium text-ijsselheem-donkerblauw hover:underline"
-                              >
-                                {row.feature.naam}
-                              </Link>
+                              <div className="flex flex-wrap items-center gap-1 min-w-0">
+                                {row.feature.naam !== BASISFEATURE_NAAM ? (
+                                  <span className="font-medium text-ijsselheem-donkerblauw min-w-0">
+                                    {row.feature.naam}
+                                  </span>
+                                ) : null}
+                                <BasisfunctionaliteitNieuweAppHint
+                                  featureNaam={row.feature.naam}
+                                  variant="compact"
+                                />
+                              </div>
                             </td>
                             <td className="p-2">
                               <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />

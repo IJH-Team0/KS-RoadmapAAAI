@@ -191,7 +191,7 @@ export function ApplicatiesBeheren() {
                       onClick={() => toggleSort('status')}
                       className="text-left font-semibold text-ijsselheem-donkerblauw hover:underline flex items-center gap-1"
                     >
-                      Status programma
+                      Status applicatie
                       {sortKey === 'status' && (sortDir === 'asc' ? ' ↑' : ' ↓')}
                     </button>
                   </th>

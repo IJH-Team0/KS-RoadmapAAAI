@@ -25,7 +25,7 @@ export function NieuweAanvraag() {
           >
             <span className="block font-medium text-ijsselheem-donkerblauw">1b Nieuwe feature</span>
             <span className="block mt-1 text-sm text-ijsselheem-donkerblauw/80">
-              Een extra feature toevoegen aan een bestaand programma; deze krijgt een eigen beoordeling op de backlog.
+              Een extra feature toevoegen aan een bestaande applicatie; deze krijgt een eigen beoordeling op de backlog.
             </span>
           </Link>
         </div>

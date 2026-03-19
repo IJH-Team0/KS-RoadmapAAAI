@@ -47,7 +47,13 @@ export function ApplicatiesBeheren() {
     setLoading(true)
     fetchAllApps()
       .then((data) => {
-        if (!cancelled) setApps(data)
+        if (!cancelled) {
+          setApps(data)
+          setError(null)
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) setError(e instanceof Error ? e.message : 'Laden mislukt')
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
@@ -106,7 +112,7 @@ export function ApplicatiesBeheren() {
                 >
                   Alle
                 </button>
-                {APP_STATUS_OPTIONS.map(({ value, label }) => (
+                {APP_STATUS_OPTIONS.map(({ value }) => (
                   <button
                     key={value}
                     type="button"

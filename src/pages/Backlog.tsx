@@ -27,7 +27,8 @@ function getSortValue(row: BacklogFeatureRow, key: SortKey): string | number | b
   return null
 }
 
-const LEVEL_OPTIONS: { value: ''; label: string }[] = [
+type BacklogLevelFilter = '' | 'L0' | 'L1' | 'L2' | 'L3'
+const LEVEL_OPTIONS: { value: BacklogLevelFilter; label: string }[] = [
   { value: '', label: 'Alle levels' },
   { value: 'L0', label: 'L0' },
   { value: 'L1', label: 'L1' },

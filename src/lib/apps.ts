@@ -1,3 +1,4 @@
+import { agentIngest } from '@/lib/agentDebug'
 import { supabase } from '@/lib/supabase'
 import type { App, AppStatusDb, AppUpdate } from '@/types/app'
 import { BASISFEATURE_NAAM } from '@/types/app'
@@ -48,6 +49,16 @@ async function fetchAllAppsRaw(): Promise<AppRow[]> {
     .select('*')
     .order('prioriteitsscore', { ascending: false, nullsFirst: false })
     .order('naam')
+  // #region agent log
+  agentIngest('apps.ts:fetchAllAppsRaw', 'apps select result', {
+    hypothesisId: error ? 'B' : 'C',
+    hasError: Boolean(error),
+    errorCode: error?.code ?? null,
+    errorMessage: error?.message ?? null,
+    rowCount: data?.length ?? 0,
+    hostname: typeof window !== 'undefined' ? window.location.hostname : 'no-window',
+  })
+  // #endregion
   if (error) throw error
   return (data ?? []) as AppRow[]
 }

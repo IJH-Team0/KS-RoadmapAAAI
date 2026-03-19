@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
+import { agentIngest } from '@/lib/agentDebug'
 import { supabase } from '@/lib/supabase'
 
 export type UserRole = 'gebruiker' | 'admin'
@@ -46,6 +47,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     supabase.auth.getSession().then(({ data: { session } }) => {
+      // #region agent log
+      agentIngest('AuthContext.tsx:getSession', 'initial auth session', {
+        hypothesisId: 'D',
+        hasSession: Boolean(session?.user),
+        hostname: typeof window !== 'undefined' ? window.location.hostname : 'no-window',
+      })
+      // #endregion
       setUser(session?.user ?? null)
       setLoading(false)
     })

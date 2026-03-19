@@ -9,44 +9,45 @@ import { cn } from '@/lib/utils'
 import { BeveiligingsniveauBadge } from '@/components/BeveiligingsniveauBadge'
 
 type SortKey =
+  | 'app_naam'
   | 'naam'
+  | 'app_beveiligingsniveau'
   | 'urenwinst_per_jaar'
-  | 'app_urenwinst_per_jaar'
-  | 'app_zorgimpact_type'
-  | 'zorgwaarde'
-  | 'werkbesparing_score'
   | 'bouwinspanning'
   | 'prioriteitsscore'
 
 function getSortValue(row: BacklogFeatureRow, key: SortKey): string | number | boolean | null {
-  if (key === 'naam') return `${row.app_naam} · ${row.feature.naam}`
-  if (key === 'domein') return row.app_domein ?? ''
-  if (key === 'app_aanspreekpunt_intern') return row.app_aanspreekpunt_intern ?? ''
-  if (key === 'app_urenwinst_per_jaar') return row.app_urenwinst_per_jaar ?? null
-  if (key === 'app_zorgimpact_type') return row.app_zorgimpact_type ?? ''
+  if (key === 'app_naam') return row.app_naam ?? ''
+  if (key === 'naam') return row.feature.naam ?? ''
+  if (key === 'app_beveiligingsniveau') return row.app_beveiligingsniveau ?? ''
   const f = row.feature
   if (key === 'urenwinst_per_jaar') return f.urenwinst_per_jaar ?? null
-  if (key === 'zorgwaarde') return f.zorgwaarde ?? null
-  if (key === 'werkbesparing_score') return f.werkbesparing_score ?? null
   if (key === 'bouwinspanning') return f.bouwinspanning ?? null
   if (key === 'prioriteitsscore') return f.prioriteitsscore ?? null
   return null
 }
 
+const LEVEL_OPTIONS: { value: ''; label: string }[] = [
+  { value: '', label: 'Alle levels' },
+  { value: 'L0', label: 'L0' },
+  { value: 'L1', label: 'L1' },
+  { value: 'L2', label: 'L2' },
+  { value: 'L3', label: 'L3' },
+]
+
 export function Backlog() {
   const [searchParams] = useSearchParams()
   const { options: domeinOptions } = useReferenceOptions('domein')
-  const { options: appStatusOptions } = useReferenceOptions('app_status')
   const [rows, setRows] = useState<BacklogFeatureRow[]>([])
   const [loading, setLoading] = useState(true)
   const [sortKey, setSortKey] = useState<SortKey>('prioriteitsscore')
   const [sortAsc, setSortAsc] = useState(false)
   const [filterDomein, setFilterDomein] = useState(searchParams.get('domein') ?? '')
-  const [filterStatus, setFilterStatus] = useState<AppStatusDb | ''>(searchParams.get('status') as AppStatusDb ?? '')
+  const [filterLevel, setFilterLevel] = useState<string>(searchParams.get('level') ?? '')
   const [filterRisico, setFilterRisico] = useState<boolean | ''>('')
   const [zoek, setZoek] = useState(searchParams.get('zoek') ?? '')
 
-  // API filters: only domein/risico; status filter is applied client-side on feature.planning_status
+  // API filters: only domein/risico; level filter is applied client-side
   const apiFilters: BacklogFilters = useMemo(() => {
     const f: BacklogFilters = {}
     if (filterDomein) f.domein = filterDomein
@@ -109,8 +110,8 @@ export function Backlog() {
           r.feature.beschrijving?.toLowerCase().includes(q)
       )
     }
-    if (filterStatus) {
-      list = list.filter((r) => (r.feature.planning_status ?? 'wensenlijst') === filterStatus)
+    if (filterLevel) {
+      list = list.filter((r) => (r.app_beveiligingsniveau ?? '') === filterLevel)
     }
     const ps = (r: BacklogFeatureRow) => r.feature.planning_status ?? 'wensenlijst'
     const count = (r: BacklogFeatureRow) => r.app_user_story_count ?? 0
@@ -121,27 +122,46 @@ export function Backlog() {
     )
     const wensen = sortRows(list.filter((r) => ps(r) === 'wensenlijst'))
     return { sprintbaarMetStory, beoordeeldGeenStory, wensen }
-  }, [rows, zoek, filterStatus, sortKey, sortAsc])
+  }, [rows, zoek, filterLevel, sortKey, sortAsc])
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc((a) => !a)
     else {
       setSortKey(key)
-      setSortAsc(key === 'naam' || key === 'domein')
+      setSortAsc(key === 'naam' || key === 'app_naam')
     }
   }
+
+  /** Achtergrondkleur voor prioriteitsscore: donkergroen (hoog) tot lichtgroen (laag), 0–100. */
+  function getPriorityBackground(score: number | null | undefined): string {
+    if (score == null || score < 0) return 'transparent'
+    const t = Math.min(100, score) / 100
+    const r = Math.round(22 + (220 - 22) * (1 - t))
+    const g = Math.round(101 + (252 - 101) * (1 - t))
+    const b = Math.round(52 + (231 - 52) * (1 - t))
+    return `rgb(${r},${g},${b})`
+  }
+
+  const COLUMNS = [
+    { key: 'app_naam' as const, label: 'Applicatie', thClass: 'w-[20%] min-w-[11rem]' },
+    { key: 'naam' as const, label: 'Feature', thClass: 'w-[18%] min-w-[10rem]' },
+    { key: 'app_beveiligingsniveau' as const, label: 'Level', thClass: 'w-[4.5rem]' },
+    { key: 'urenwinst_per_jaar' as const, label: 'Urenwinst/jaar', thClass: 'w-[5.5rem]' },
+    { key: 'bouwinspanning' as const, label: 'Bouwinspanning', thClass: 'w-[5rem]' },
+    { key: 'prioriteitsscore' as const, label: 'Prioriteitsscore', thClass: 'w-[5.5rem]' },
+  ] as const
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-bold text-ijsselheem-donkerblauw">Backlog</h2>
       <p className="text-sm text-ijsselheem-donkerblauw/80">
-        Per feature: programma · feature (Basisfunctionaliteit = eerste app). Prioriteitsscore en beoordeling staan op de feature.
+        Per feature: applicatie en feature (Basisfunctionaliteit = eerste app). Prioriteitsscore en beoordeling staan op de feature.
       </p>
 
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="search"
-          placeholder="Zoeken op programma, feature, domein..."
+          placeholder="Zoeken op applicatie, feature, domein..."
           value={zoek}
           onChange={(e) => setZoek(e.target.value)}
           className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-1.5 text-sm w-56"
@@ -157,13 +177,12 @@ export function Backlog() {
           ))}
         </select>
         <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as AppStatusDb | '')}
+          value={filterLevel}
+          onChange={(e) => setFilterLevel(e.target.value)}
           className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-1.5 text-sm"
         >
-          <option value="">Alle statussen</option>
-          {appStatusOptions.filter((o) => BACKLOG_PHASES.includes(o.value as AppStatusDb)).map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
+          {LEVEL_OPTIONS.map((o) => (
+            <option key={o.value || 'all'} value={o.value}>{o.label}</option>
           ))}
         </select>
         <select
@@ -204,22 +223,11 @@ export function Backlog() {
                   {rows.length === 0 ? (
                     <p className="p-4 text-ijsselheem-donkerblauw/80 text-sm">Geen items.</p>
                   ) : (
-                    <table className="w-full text-sm">
+                    <table className="w-full table-fixed text-sm">
                       <thead>
                         <tr className="bg-ijsselheem-lichtblauw/50 text-left">
-                          {(
-                            [
-                              { key: 'naam' as const, label: 'Programma · Feature' },
-                              { key: 'urenwinst_per_jaar' as const, label: 'Urenwinst/jaar' },
-                              { key: 'app_urenwinst_per_jaar' as const, label: 'Urenwinst (aanvraag)' },
-                              { key: 'app_zorgimpact_type' as const, label: 'Zorgimpact (aanvraag)' },
-                              { key: 'zorgwaarde' as const, label: 'Zorgwaarde' },
-                              { key: 'werkbesparing_score' as const, label: 'Werkbesparing' },
-                              { key: 'bouwinspanning' as const, label: 'Bouwinspanning' },
-                              { key: 'prioriteitsscore' as const, label: 'Prioriteitsscore' },
-                            ] as const
-                          ).map(({ key, label }) => (
-                            <th key={key} className="p-2 whitespace-nowrap">
+                          {COLUMNS.map(({ key, label, thClass }) => (
+                            <th key={key} className={cn('p-2 whitespace-nowrap', thClass)}>
                               <button
                                 type="button"
                                 onClick={() => toggleSort(key)}
@@ -243,16 +251,19 @@ export function Backlog() {
                                 : ''
                             )}
                           >
+                            <td className="p-2 text-ijsselheem-donkerblauw">
+                              {row.app_naam}
+                            </td>
                             <td className="p-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Link
-                                  to={`/backlog/feature/${row.feature.id}`}
-                                  className="font-medium text-ijsselheem-donkerblauw hover:underline"
-                                >
-                                  {row.app_naam} · {row.feature.naam}
-                                </Link>
-                                <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />
-                              </div>
+                              <Link
+                                to={`/backlog/feature/${row.feature.id}`}
+                                className="font-medium text-ijsselheem-donkerblauw hover:underline"
+                              >
+                                {row.feature.naam}
+                              </Link>
+                            </td>
+                            <td className="p-2">
+                              <BeveiligingsniveauBadge level={row.app_beveiligingsniveau} shortLabel />
                             </td>
                             <td className="p-2 text-ijsselheem-donkerblauw">
                               {row.feature.urenwinst_per_jaar != null
@@ -260,22 +271,6 @@ export function Backlog() {
                                     maximumFractionDigits: 0,
                                   })
                                 : '—'}
-                            </td>
-                            <td className="p-2 text-ijsselheem-donkerblauw/80">
-                              {row.app_urenwinst_per_jaar != null
-                                ? row.app_urenwinst_per_jaar.toLocaleString('nl-NL', {
-                                    maximumFractionDigits: 0,
-                                  })
-                                : '—'}
-                            </td>
-                            <td className="p-2 text-ijsselheem-donkerblauw/80 text-xs">
-                              {row.app_zorgimpact_type ?? '—'}
-                            </td>
-                            <td className="p-2 text-ijsselheem-donkerblauw">
-                              {row.feature.zorgwaarde ?? '—'}
-                            </td>
-                            <td className="p-2 text-ijsselheem-donkerblauw">
-                              {row.feature.werkbesparing_score ?? '—'}
                             </td>
                             <td className="p-2">
                               <span
@@ -288,7 +283,17 @@ export function Backlog() {
                                 {row.feature.bouwinspanning ?? '—'}
                               </span>
                             </td>
-                            <td className="p-2 font-medium text-ijsselheem-donkerblauw">
+                            <td
+                              className={cn(
+                                'p-2 font-medium',
+                                (row.feature.prioriteitsscore ?? 0) >= 55
+                                  ? 'text-white'
+                                  : 'text-ijsselheem-donkerblauw'
+                              )}
+                              style={{
+                                backgroundColor: getPriorityBackground(row.feature.prioriteitsscore),
+                              }}
+                            >
                               {row.feature.prioriteitsscore != null
                                 ? row.feature.prioriteitsscore.toFixed(1)
                                 : '—'}

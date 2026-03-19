@@ -13,13 +13,35 @@ export function getFeatureStatusLabel(status: FeatureStatusDb): string {
   return FEATURE_STATUS_OPTIONS.find((o) => o.value === status)?.label ?? status
 }
 
-/** Feature (per app), incl. prioritering/beoordeling op feature-niveau */
+/** Afleiding: planning_status → gepland / in_ontwikkeling / gereed (niet opgeslagen op features). */
+export function getDerivedFeatureStatus(
+  planningStatus: AppStatusDb | null | undefined
+): FeatureStatusDb {
+  if (!planningStatus) return 'gepland'
+  switch (planningStatus) {
+    case 'wensenlijst':
+    case 'stories_maken':
+    case 'in_voorbereiding':
+      return 'gepland'
+    case 'in_ontwikkeling':
+    case 'in_testfase':
+      return 'in_ontwikkeling'
+    case 'in_productie':
+    case 'afgewezen':
+      return 'gereed'
+    default:
+      return 'gepland'
+  }
+}
+
+/** Feature (per app), incl. prioritering/beoordeling op feature-niveau. status is afgeleid uit planning_status. */
 export interface Feature {
   id: string
   app_id: string
   naam: string
   beschrijving: string | null
-  status: FeatureStatusDb
+  /** Afgeleid uit planning_status (niet opgeslagen in DB). */
+  status?: FeatureStatusDb
   ready_for_stories: boolean
   story_count: number
   created_at: string
@@ -68,20 +90,18 @@ export interface RoadmapItemWithAppAndFeature extends RoadmapItem {
   feature_naam?: string | null
 }
 
-/** Payload om een feature aan te maken (app_id apart) */
+/** Payload om een feature aan te maken (app_id apart). status wordt afgeleid uit planning_status. */
 export interface FeatureInsert {
   naam: string
   beschrijving?: string | null
-  status?: FeatureStatusDb
 }
 
-/** Payload om een feature te bewerken (partial) */
+/** Payload om een feature te bewerken (partial). status is niet bewerkbaar (afgeleid). */
 export type FeatureUpdate = Partial<
   Pick<
     Feature,
     | 'naam'
     | 'beschrijving'
-    | 'status'
     | 'ready_for_stories'
     | 'zorgwaarde'
     | 'bouwinspanning'

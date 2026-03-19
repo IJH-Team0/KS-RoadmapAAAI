@@ -10,11 +10,12 @@ import type {
   FeatureStatusDb,
   BacklogFeatureRow,
 } from '@/types/roadmap'
-import { updateApp } from '@/lib/apps'
+import { getDerivedFeatureStatus } from '@/types/roadmap'
+import { fetchDerivedAppStatusMap } from '@/lib/apps'
 import type { BacklogFilters } from '@/lib/apps'
 import type { AppStatusDb } from '@/types/app'
 
-/** Alle features van een app */
+/** Alle features van een app. status wordt afgeleid uit planning_status. */
 export async function fetchFeaturesByAppId(appId: string): Promise<Feature[]> {
   const { data, error } = await supabase
     .from('features')
@@ -22,20 +23,24 @@ export async function fetchFeaturesByAppId(appId: string): Promise<Feature[]> {
     .eq('app_id', appId)
     .order('naam')
   if (error) throw error
-  return (data ?? []) as Feature[]
+  return ((data ?? []) as Feature[]).map((f) => ({
+    ...f,
+    status: getDerivedFeatureStatus(f.planning_status),
+  }))
 }
 
-/** Eén feature op id */
+/** Eén feature op id. status wordt afgeleid uit planning_status. */
 export async function fetchFeatureById(id: string): Promise<Feature | null> {
   const { data, error } = await supabase.from('features').select('*').eq('id', id).single()
   if (error) {
     if (error.code === 'PGRST116') return null
     throw error
   }
-  return data as Feature
+  const f = data as Feature
+  return { ...f, status: getDerivedFeatureStatus(f.planning_status) }
 }
 
-/** Nieuwe feature aanmaken voor een app */
+/** Nieuwe feature aanmaken voor een app. status wordt afgeleid uit planning_status. */
 export async function createFeature(
   appId: string,
   payload: FeatureInsert
@@ -46,15 +51,15 @@ export async function createFeature(
       app_id: appId,
       naam: payload.naam,
       beschrijving: payload.beschrijving ?? null,
-      status: payload.status ?? 'gepland',
     })
     .select()
     .single()
   if (error) throw error
-  return data as Feature
+  const f = data as Feature
+  return { ...f, status: getDerivedFeatureStatus(f.planning_status) }
 }
 
-/** Feature bewerken */
+/** Feature bewerken. status wordt afgeleid uit planning_status. */
 export async function updateFeature(id: string, payload: FeatureUpdate): Promise<Feature> {
   const { data, error } = await supabase
     .from('features')
@@ -63,7 +68,8 @@ export async function updateFeature(id: string, payload: FeatureUpdate): Promise
     .select()
     .single()
   if (error) throw error
-  return data as Feature
+  const f = data as Feature
+  return { ...f, status: getDerivedFeatureStatus(f.planning_status) }
 }
 
 /** Feature verwijderen (alleen admin; Basisfunctionaliteit niet verwijderen in UI) */
@@ -72,16 +78,12 @@ export async function deleteFeature(id: string): Promise<void> {
   if (error) throw error
 }
 
-/** If all features of the app have the given planning_status, sync app.status to that value. */
+/** Voorheen: sync app.status wanneer alle features dezelfde planning_status hadden. Status programma wordt nu afgeleid uit Basisfunctionaliteit; geen app-update meer. */
 export async function maybeSyncAppStatusToFeaturePlanningStatus(
-  appId: string,
-  newPlanningStatus: AppStatusDb
+  _appId: string,
+  _newPlanningStatus: AppStatusDb
 ): Promise<void> {
-  const features = await fetchFeaturesByAppId(appId)
-  const allSame = features.every((f) => (f.planning_status ?? 'wensenlijst') === newPlanningStatus)
-  if (allSame) {
-    await updateApp(appId, { status: newPlanningStatus })
-  }
+  /* No-op: app status is derived from basis feature planning_status. */
 }
 
 const LATER_PHASES = ['in_ontwikkeling', 'in_testfase', 'in_productie'] as const
@@ -97,23 +99,16 @@ export interface FetchFeaturesForBacklogOptions {
   excludeAppsInDevTestProd?: boolean
 }
 
-/** Features voor backlog: alle features van apps die niet afgewezen zijn, met app-naam/domein/status. Sortering op prioriteitsscore (feature), dan naam. */
+/** Features voor backlog: alle features van apps die niet afgewezen zijn (status = basis feature planning_status), met app-naam/domein/status. */
 export async function fetchFeaturesForBacklog(
   filters?: BacklogFilters,
   options?: FetchFeaturesForBacklogOptions
 ): Promise<BacklogFeatureRow[]> {
   let appQuery = supabase
     .from('apps')
-    .select('id, naam, domein, status, urenwinst_per_jaar, zorgimpact_type, platform, aanspreekpunt_intern, beveiligingsniveau')
-    .neq('status', 'afgewezen')
+    .select('id, naam, domein, urenwinst_per_jaar, zorgimpact_type, platform, aanspreekpunt_intern, beveiligingsniveau')
   if (filters?.domein) appQuery = appQuery.eq('domein', filters.domein)
-  if (filters?.status) appQuery = appQuery.eq('status', filters.status)
   if (filters?.risico !== undefined) appQuery = appQuery.eq('risico', filters.risico)
-  if (options?.excludeAppsInDevTestProd) {
-    for (const s of APP_STATUS_DEV_TEST_PROD) {
-      appQuery = appQuery.neq('status', s)
-    }
-  }
 
   const { data: appData, error: appError } = await appQuery
   if (appError) throw appError
@@ -123,34 +118,49 @@ export async function fetchFeaturesForBacklog(
     id: string
     naam: string
     domein: string | null
-    status: string
     urenwinst_per_jaar: number | null
     zorgimpact_type: string | null
     platform: string | null
     aanspreekpunt_intern: string | null
     beveiligingsniveau: 'L0' | 'L1' | 'L2' | 'L3' | null
   }
-  const appIds = (appData as AppRow[]).map((a) => a.id)
+  const appRows = appData as AppRow[]
+  const appIds = appRows.map((a) => a.id)
+  const statusMap = await fetchDerivedAppStatusMap(appIds)
+
+  let allowedAppIds = appIds.filter((id) => statusMap.get(id) !== 'afgewezen')
+  if (filters?.status) {
+    allowedAppIds = allowedAppIds.filter((id) => statusMap.get(id) === filters?.status)
+  }
+  if (options?.excludeAppsInDevTestProd) {
+    allowedAppIds = allowedAppIds.filter(
+      (id) => !APP_STATUS_DEV_TEST_PROD.includes((statusMap.get(id) ?? 'wensenlijst') as (typeof APP_STATUS_DEV_TEST_PROD)[number])
+    )
+  }
+  if (allowedAppIds.length === 0) return []
+
   const appMap = new Map(
-    (appData as AppRow[]).map((a) => [
-      a.id,
-      {
-        naam: a.naam,
-        domein: a.domein,
-        status: a.status,
-        urenwinst_per_jaar: a.urenwinst_per_jaar ?? null,
-        zorgimpact_type: a.zorgimpact_type ?? null,
-        platform: a.platform ?? null,
-        aanspreekpunt_intern: a.aanspreekpunt_intern ?? null,
-        beveiligingsniveau: a.beveiligingsniveau ?? null,
-      },
-    ])
+    appRows
+      .filter((a) => allowedAppIds.includes(a.id))
+      .map((a) => [
+        a.id,
+        {
+          naam: a.naam,
+          domein: a.domein,
+          status: (statusMap.get(a.id) ?? 'wensenlijst') as string,
+          urenwinst_per_jaar: a.urenwinst_per_jaar ?? null,
+          zorgimpact_type: a.zorgimpact_type ?? null,
+          platform: a.platform ?? null,
+          aanspreekpunt_intern: a.aanspreekpunt_intern ?? null,
+          beveiligingsniveau: a.beveiligingsniveau ?? null,
+        },
+      ])
   )
 
   const { data: features, error } = await supabase
     .from('features')
     .select('*')
-    .in('app_id', appIds)
+    .in('app_id', allowedAppIds)
     .order('prioriteitsscore', { ascending: false, nullsFirst: false })
     .order('naam')
   if (error) throw error
@@ -158,7 +168,7 @@ export async function fetchFeaturesForBacklog(
   const { data: userStories } = await supabase
     .from('user_stories')
     .select('app_id')
-    .in('app_id', appIds)
+    .in('app_id', allowedAppIds)
   const storyCountByApp = new Map<string, number>()
   for (const row of userStories ?? []) {
     const appId = (row as { app_id: string }).app_id
@@ -166,15 +176,19 @@ export async function fetchFeaturesForBacklog(
   }
 
   let rows: BacklogFeatureRow[] = (features ?? []).map((f) => {
-    const app = appMap.get((f as Feature).app_id)
+    const feature = f as Feature
+    const app = appMap.get(feature.app_id)
     return {
-      feature: f as Feature,
+      feature: {
+        ...feature,
+        status: getDerivedFeatureStatus(feature.planning_status),
+      },
       app_naam: app?.naam ?? '—',
       app_domein: app?.domein ?? null,
       app_status: app?.status ?? '—',
       app_urenwinst_per_jaar: app?.urenwinst_per_jaar ?? null,
       app_zorgimpact_type: app?.zorgimpact_type ?? null,
-      app_user_story_count: storyCountByApp.get((f as Feature).app_id) ?? 0,
+      app_user_story_count: storyCountByApp.get(feature.app_id) ?? 0,
       app_platform: app?.platform ?? null,
       app_aanspreekpunt_intern: app?.aanspreekpunt_intern ?? null,
       app_beveiligingsniveau: app?.beveiligingsniveau ?? null,
@@ -367,6 +381,7 @@ export async function fetchFeaturesWithoutRoadmapItem(): Promise<BacklogFeatureR
   const statusesOnRol: FeatureStatusDb[] = ['gepland', 'in_ontwikkeling', 'gereed']
   return backlogRows.filter(
     (r) =>
-      !featureIdsOnRoadmap.has(r.feature.id) && statusesOnRol.includes(r.feature.status)
+      !featureIdsOnRoadmap.has(r.feature.id) &&
+      statusesOnRol.includes(getDerivedFeatureStatus(r.feature.planning_status))
   )
 }

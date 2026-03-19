@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { fetchAppById, updateApp, deleteApp } from '@/lib/apps'
 import {
   fetchFeatureById,
+  fetchFeaturesByAppId,
   updateFeature,
   maybeSyncAppStatusToFeaturePlanningStatus,
 } from '@/lib/roadmap'
@@ -339,9 +340,6 @@ export function BacklogDetail() {
     }
     try {
       await updateFeature(feature.id, update)
-      if (app && app.status === 'wensenlijst' && isFullyFilled) {
-        await updateApp(app.id, { status: 'stories_maken' as AppStatusDb })
-      }
       const newBeveiligingsniveau = bepaalBeveiligingsniveau(beveiliging)
       if (app && newBeveiligingsniveau !== app.beveiligingsniveau) {
         const updated = await updateApp(app.id, { beveiligingsniveau: newBeveiligingsniveau })
@@ -1306,10 +1304,15 @@ export function BacklogDetail() {
                       <select
                         value={app.status}
                         onChange={async (e) => {
-                          const status = e.target.value as AppStatusDb
+                          const planningStatus = e.target.value as AppStatusDb
                           try {
-                            const updated = await updateApp(app.id, { status })
-                            setApp(updated)
+                            const features = await fetchFeaturesByAppId(app.id)
+                            const basisFeature = features.find((f) => f.naam === BASISFEATURE_NAAM)
+                            if (basisFeature) {
+                              await updateFeature(basisFeature.id, { planning_status: planningStatus })
+                              const updatedApp = await fetchAppById(app.id)
+                              if (updatedApp) setApp(updatedApp)
+                            }
                           } catch (_) {}
                         }}
                         className="mt-1 w-full rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-2 py-1.5 text-sm"

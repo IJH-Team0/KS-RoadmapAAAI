@@ -126,11 +126,11 @@ export const APP_ICON_OPTIONS: { value: string; label: string }[] = [
   { value: 'lightbulb', label: 'Idee' },
 ]
 
-/** App: velden uit CSV + prioritering */
+/** App: velden uit CSV + prioritering. status is afgeleid uit de planning_status van de feature "Basisfunctionaliteit". */
 export interface App {
   id: string
   naam: string
-  /** Productniveau (bijv. in productie wanneer Basisfunctionaliteit in productie is); zie AppStatusDb. */
+  /** Afgeleid: productniveau = planning_status van Basisfunctionaliteit (niet opgeslagen op apps). */
   status: AppStatusDb
   created_at: string
   updated_at: string
@@ -175,5 +175,5 @@ export interface App {
 }
 
 export type AppUpdate = Partial<
-  Omit<App, 'id' | 'created_at' | 'updated_at'>
+  Omit<App, 'id' | 'created_at' | 'updated_at' | 'status'>
 >

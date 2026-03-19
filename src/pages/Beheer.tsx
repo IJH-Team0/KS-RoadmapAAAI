@@ -696,7 +696,6 @@ function BeheerWensenBak() {
       )
       const app = await createApp({
         naam: wens.naam,
-        status: 'wensenlijst',
         concept: false,
         probleemomschrijving: wens.probleemomschrijving ?? null,
         domein: wens.domein ?? null,

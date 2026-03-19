@@ -19,7 +19,7 @@ import {
 } from '@/lib/roadmap'
 import type { Feature, FeatureInsert } from '@/types/roadmap'
 import {
-  FEATURE_STATUS_OPTIONS,
+  getDerivedFeatureStatus,
   getFeatureStatusLabel,
 } from '@/types/roadmap'
 
@@ -63,7 +63,6 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
   const [addFeatureForm, setAddFeatureForm] = useState<FeatureInsert>({
     naam: '',
     beschrijving: '',
-    status: 'gepland',
   })
   const [errorFeature, setErrorFeature] = useState<string | null>(null)
   const [savingFeature, setSavingFeature] = useState(false)
@@ -103,7 +102,6 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
       await updateFeature(editingFeatureId, {
         naam: editFeatureForm.naam,
         beschrijving: editFeatureForm.beschrijving ?? null,
-        status: editFeatureForm.status,
         planning_status: planningStatus,
       })
       if (planningStatus) {
@@ -128,10 +126,9 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
       await createFeature(app.id, {
         naam: addFeatureForm.naam.trim(),
         beschrijving: addFeatureForm.beschrijving?.trim() || null,
-        status: addFeatureForm.status ?? 'gepland',
       })
       setShowAddFeature(false)
-      setAddFeatureForm({ naam: '', beschrijving: '', status: 'gepland' })
+      setAddFeatureForm({ naam: '', beschrijving: '' })
       refetchFeatures()
     } catch (err) {
       setErrorFeature(err instanceof Error ? err.message : 'Toevoegen mislukt')
@@ -162,7 +159,6 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
     setError(null)
     const update: AppUpdate = {
       naam: app.naam,
-      status: app.status,
       doel_app: app.doel_app || null,
       eigenaar: app.eigenaar || null,
       aanspreekpunt_proces: app.aanspreekpunt_proces || null,
@@ -737,22 +733,10 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
                         placeholder="Beschrijving"
                       />
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xs text-ijsselheem-donkerblauw/70 mr-1">Status (roadmap):</span>
-                        <select
-                          value={editFeatureForm.status}
-                          onChange={(e) =>
-                            setEditFeatureForm((f) =>
-                              f ? { ...f, status: e.target.value as Feature['status'] } : null
-                            )
-                          }
-                          className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
-                        >
-                          {FEATURE_STATUS_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
+                        <span className="text-xs text-ijsselheem-donkerblauw/70 mr-1">Platform:</span>
+                        <span className="rounded-md bg-ijsselheem-lichtblauw/70 px-2 py-1 text-sm text-ijsselheem-donkerblauw">
+                          {app.platform ?? '—'}
+                        </span>
                         <span className="text-xs text-ijsselheem-donkerblauw/70 mr-1">Status feature:</span>
                         <select
                           value={editFeatureForm.planning_status ?? 'wensenlijst'}
@@ -805,7 +789,7 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
                           className="rounded-md bg-ijsselheem-lichtblauw/70 px-2 py-0.5 text-xs font-medium text-ijsselheem-donkerblauw"
                           title="Status roadmap"
                         >
-                          {getFeatureStatusLabel(feature.status)}
+                          {getFeatureStatusLabel(getDerivedFeatureStatus(feature.planning_status))}
                         </span>
                         <span
                           className="rounded-md border border-ijsselheem-accentblauw/40 bg-white px-2 py-0.5 text-xs font-medium text-ijsselheem-donkerblauw"
@@ -882,19 +866,6 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
                   placeholder="Beschrijving"
                 />
                 <div className="flex flex-wrap items-center gap-2">
-                  <select
-                    value={addFeatureForm.status ?? 'gepland'}
-                    onChange={(e) =>
-                      setAddFeatureForm((f) => ({ ...f, status: e.target.value as Feature['status'] }))
-                    }
-                    className="rounded-lg border border-ijsselheem-accentblauw/50 bg-white px-3 py-2 text-sm"
-                  >
-                    {FEATURE_STATUS_OPTIONS.map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
                   <button
                     type="submit"
                     disabled={savingFeature || !addFeatureForm.naam.trim()}
@@ -906,7 +877,7 @@ export function AppDetail({ app: initialApp, onSaved, onCancel, showOnly = 'all'
                     type="button"
                     onClick={() => {
                       setShowAddFeature(false)
-                      setAddFeatureForm({ naam: '', beschrijving: '', status: 'gepland' })
+                      setAddFeatureForm({ naam: '', beschrijving: '' })
                     }}
                     className="rounded-[16px] border border-gray-300 bg-white px-3 py-1.5 text-sm text-ijsselheem-donkerblauw"
                   >

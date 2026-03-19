@@ -46,7 +46,6 @@ export function NieuweProgramma() {
       const u = urenwinst ?? undefined
       await createApp({
         naam: form.naam.trim(),
-        status: 'wensenlijst',
         concept: true,
         probleemomschrijving: form.probleemomschrijving.trim() || null,
         domein: form.domein || null,
@@ -78,7 +77,6 @@ export function NieuweProgramma() {
       const refNum = `REF-${new Date().getFullYear()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`
       const created = await createApp({
         naam: form.naam.trim(),
-        status: 'wensenlijst',
         concept: false,
         probleemomschrijving: form.probleemomschrijving.trim() || null,
         domein: form.domein || null,

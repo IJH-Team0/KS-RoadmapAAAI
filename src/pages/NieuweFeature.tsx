@@ -52,7 +52,6 @@ export function NieuweFeature() {
       const created = await createFeature(featureForm.appId, {
         naam: featureForm.featureNaam.trim(),
         beschrijving: featureForm.featureBeschrijving.trim() || null,
-        status: 'gepland',
       })
       const updatePayload = {
         frequentie_per_week: featureFreq ?? null,

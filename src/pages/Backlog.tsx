@@ -69,13 +69,6 @@ export function Backlog() {
       .finally(() => setLoading(false))
   }, [filterDomein, filterRisico])
 
-  const SPRINT_PHASES: AppStatusDb[] = [
-    'in_voorbereiding',
-    'in_ontwikkeling',
-    'in_testfase',
-    'in_productie',
-  ]
-
   function sortRows(list: BacklogFeatureRow[]) {
     return [...list].sort((a, b) => {
       const va = getSortValue(a, sortKey)

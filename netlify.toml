@@ -9,3 +9,8 @@
 [build.environment]
   # Gebouwde JS bevat de Supabase anon key (bewust publiek). Scanner uitsluiten voor deze bestanden.
   SECRETS_SCAN_OMIT_PATHS = "dist/assets/*.js"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

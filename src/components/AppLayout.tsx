@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils'
 import { fetchAppsTestEnProductieNogNietPubliek } from '@/lib/apps'
 import { fetchFeaturesNeedingBeoordeling, fetchFeaturesInStoriesMaken } from '@/lib/roadmap'
 import { fetchWensenBakIngediendCount } from '@/lib/wensenBak'
+import packageJson from '../../package.json'
 
 // Sidebar: alleen schermen waar iets gedaan moet worden (acties, werkstromen)
 const sidebarProcessSteps: { to: string; label: string }[] = [
@@ -162,6 +163,7 @@ export function AppLayout() {
   }
 
   const mainBg = effectiveRole === 'gebruiker' ? 'bg-ijsselheem-pastelgroen' : 'bg-ijsselheem-lichtblauw'
+  const appVersion = packageJson.version
   return (
     <div className={cn('min-h-screen flex flex-col', mainBg)}>
       {/* Bovenbalk: logo + navigatie + profiel */}
@@ -267,6 +269,9 @@ export function AppLayout() {
                   )
                 )}
                 <div className="border-t border-ijsselheem-accentblauw/20 mt-1 pt-1">
+                  <div className="px-4 py-2 text-xs text-ijsselheem-donkerblauw/70">
+                    Versie v{appVersion}
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
